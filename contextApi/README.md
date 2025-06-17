@@ -19,6 +19,8 @@ Inline Editing with validation
 
 Admin Checkbox Handling
 
+Storing data in Local Storage
+
 📚 Key Concepts Learned
 Context API for global state
 
