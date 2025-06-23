@@ -1,0 +1,11 @@
+.form-container {
+  width: 50%;
+  margin: auto;
+  padding-top: 5%;
+  padding-bottom: 3%;
+}
+.card.is-editing {
+  border: 4px solid #3fb0a1; /* Bulma primary color */
+  box-shadow: 0 0 10px rgba(72, 95, 199, 0.4);
+  background-color: rgba(72, 95, 199, 0.1);
+}
