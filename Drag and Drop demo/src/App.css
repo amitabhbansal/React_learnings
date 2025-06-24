@@ -1,0 +1,24 @@
+.parent {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding-top: 100px;
+}
+.child {
+  height: 500px;
+  width: 300px;
+  background-color: rgb(142, 142, 230);
+  margin: 50px;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+.card {
+  background-color: white;
+  border: 1px solid #999;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  border-radius: 4px;
+}
