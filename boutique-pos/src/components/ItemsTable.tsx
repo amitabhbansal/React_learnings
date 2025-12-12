@@ -13,15 +13,6 @@ const ItemsTable = ({ items }: ItemsTableProps) => {
     }).format(amount);
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   return (
     <div className="w-full bg-gray-900 rounded-lg p-6 mt-6">
       <div className="flex justify-between items-center mb-4">
