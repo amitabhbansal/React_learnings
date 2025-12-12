@@ -14,7 +14,7 @@ const ItemsTable = ({ items }: ItemsTableProps) => {
   };
 
   return (
-    <div className="w-full bg-gray-900 rounded-lg p-6 mt-6">
+    <div className="w-full rounded-lg p-6 mt-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-white">Items ({items.length})</h2>
       </div>

@@ -33,7 +33,7 @@ export interface Order {
   $id?: string;
   customerPhone: string;
   items: string; // JSON stringified array of OrderItem[]
-  status: 'pending' | 'completed' | 'cancelled';
+  status: 'pending' | 'completed' | 'stuck';
   remarks?: string;
   totalAmount: number;
   totalDiscount?: number;
