@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import service from '../appwrite/config';
+import type { Item } from '../types';
+import ItemsTable from './ItemsTable';
 
 const FetchItems = () => {
   const [soldStatus, setSoldStatus] = useState('ALL');
   const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<Item[]>([]);
 
   const handleOptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSoldStatus(e.target.value);
@@ -13,10 +16,11 @@ const FetchItems = () => {
     setLoading(true);
     console.log('selected radio', soldStatus);
     try {
-      const items = await service.getItems(
+      const fetchedItems = await service.getItems(
         soldStatus === 'ALL' ? undefined : soldStatus === 'SOLD' ? true : false
       );
-      console.log(items);
+      console.log(fetchedItems);
+      setItems(fetchedItems);
     } catch (error) {
       console.error('Error fetching items:', error);
       alert('Error fetching items. Please try again.');
@@ -69,6 +73,13 @@ const FetchItems = () => {
         />
         <span className="ml-1">UNSOLD</span>
       </label>
+
+      {/* Display the items table */}
+      {items.length > 0 && (
+        <div className="mt-6">
+          <ItemsTable items={items} />
+        </div>
+      )}
     </>
   );
 };

@@ -15,7 +15,7 @@ export interface Item {
   remarks?: string;
   costPrice: number;
   markedPrice: number;
-  defaultSellingPrice: number;
+  defaultSellingPrice?: number;
   $createdAt?: string;
   $updatedAt?: string;
 }
@@ -52,7 +52,7 @@ export const parseOrderItems = (itemsString: string): OrderItem[] => {
   try {
     return JSON.parse(itemsString);
   } catch (error) {
-    console.error("Error parsing order items:", error);
+    console.error('Error parsing order items:', error);
     return [];
   }
 };
