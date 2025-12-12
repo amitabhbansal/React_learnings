@@ -42,11 +42,11 @@ const CreateCustomer = () => {
   };
   return (
     <>
-      <div className="p-6 bg-dark rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-4 text-black">Add New Customer</h2>
+      <div className="p-6 bg-base-200 rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-4">Add New Customer</h2>
         <form onSubmit={handleSubmit}>
           <fieldset className="fieldset">
-            <legend className="fieldset-legend text-black">Name</legend>
+            <legend className="fieldset-legend">Name</legend>
             <input
               type="text"
               value={customer?.name}
@@ -56,7 +56,7 @@ const CreateCustomer = () => {
             />
           </fieldset>
           <fieldset className="fieldset">
-            <legend className="fieldset-legend text-black">Contact Number</legend>
+            <legend className="fieldset-legend">Contact Number</legend>
             <input
               type="text"
               value={customer?.phone}
@@ -66,7 +66,7 @@ const CreateCustomer = () => {
             />
           </fieldset>
           <button
-            className="bg-black text-white px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            className=" btn btn-primary mt-2 px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             type="submit"
             disabled={loading}
           >

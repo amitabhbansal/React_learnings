@@ -2,59 +2,57 @@ import { useState } from 'react';
 import service from '../appwrite/config';
 import type { Customer } from '../types';
 
-
-
 export default function FetchCustomer() {
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState('');
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function fetchCustomer() {
     if (!phone.trim() || phone.length !== 10) {
-      alert("Please enter a valid 10-digit phone number");
+      alert('Please enter a valid 10-digit phone number');
       return;
     }
 
     setLoading(true);
     try {
       const c = await service.getCustomerByPhone(phone);
-      console.log("Customer fetched:", c);
-      
+      console.log('Customer fetched:', c);
+
       if (c == null) {
-        alert("No customer found with this phone number");
+        alert('No customer found with this phone number');
         setCustomer(null);
         return;
       }
-      
+
       const customerData: Customer = {
         phone: c.phone,
-        name: c.name
+        name: c.name,
       };
-      
+
       setCustomer(customerData);
     } catch (error) {
-      console.error("Error fetching customer:", error);
-      alert("Error fetching customer. Please try again.");
+      console.error('Error fetching customer:', error);
+      alert('Error fetching customer. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="p-6 bg-dark rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4 text-black">Search Customer</h2>
-      
+    <div className="p-6 bg-base-200 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-4">Search Customer</h2>
+
       <div className="flex gap-2 mb-4">
         <input
           type="text"
           placeholder="Enter phone number"
-          className="flex-1 border text-black border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && fetchCustomer()}
         />
         <button
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn btn-primary px-6 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={fetchCustomer}
           disabled={loading}
         >

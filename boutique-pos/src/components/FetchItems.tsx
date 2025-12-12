@@ -30,9 +30,9 @@ const FetchItems = () => {
   };
   return (
     <>
-      <div className="p-6 bg-dark rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-4 text-black">Fetch Items</h2>
-        <button className="btn" onClick={fetchAllItems}>
+      <div className="p-6 bg-base-200 rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-4">Fetch Items</h2>
+        <button className="btn btn-primary" onClick={fetchAllItems}>
           {loading ? (
             <div>
               <span className="loading loading-spinner"></span>Loading
@@ -41,7 +41,7 @@ const FetchItems = () => {
             'Fetch'
           )}
         </button>
-        <label className="text-black ml-5 cursor-pointer">
+        <label className="ml-5 cursor-pointer">
           <input
             type="radio"
             name="radio-1"
@@ -53,7 +53,7 @@ const FetchItems = () => {
           />
           <span className="ml-1">ALL</span>
         </label>
-        <label className="text-black ml-3 cursor-pointer">
+        <label className=" ml-3 cursor-pointer">
           <input
             type="radio"
             name="radio-1"
@@ -64,7 +64,7 @@ const FetchItems = () => {
           />
           <span className="ml-1">SOLD</span>
         </label>
-        <label className="text-black ml-3 cursor-pointer">
+        <label className=" ml-3 cursor-pointer">
           <input
             type="radio"
             name="radio-1"
