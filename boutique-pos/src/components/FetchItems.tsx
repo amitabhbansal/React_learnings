@@ -30,56 +30,59 @@ const FetchItems = () => {
   };
   return (
     <>
-      <button className="btn" onClick={fetchAllItems}>
-        {loading ? (
-          <div>
-            <span className="loading loading-spinner"></span>Loading
-          </div>
-        ) : (
-          'Fetch all items'
-        )}
-      </button>
-      <label className="text-black ml-5 cursor-pointer">
-        <input
-          type="radio"
-          name="radio-1"
-          className="radio radio-primary"
-          value="ALL"
-          defaultChecked
-          checked={soldStatus === 'ALL'}
-          onChange={handleOptionChange}
-        />
-        <span className="ml-1">ALL</span>
-      </label>
-      <label className="text-black ml-3 cursor-pointer">
-        <input
-          type="radio"
-          name="radio-1"
-          className="radio radio-primary"
-          value="SOLD"
-          checked={soldStatus === 'SOLD'}
-          onChange={handleOptionChange}
-        />
-        <span className="ml-1">SOLD</span>
-      </label>
-      <label className="text-black ml-3 cursor-pointer">
-        <input
-          type="radio"
-          name="radio-1"
-          className="radio radio-primary"
-          value="UNSOLD"
-          checked={soldStatus === 'UNSOLD'}
-          onChange={handleOptionChange}
-        />
-        <span className="ml-1">UNSOLD</span>
-      </label>
+      <div className="p-6 bg-dark rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-4 text-black">Fetch Items</h2>
+        <button className="btn" onClick={fetchAllItems}>
+          {loading ? (
+            <div>
+              <span className="loading loading-spinner"></span>Loading
+            </div>
+          ) : (
+            'Fetch'
+          )}
+        </button>
+        <label className="text-black ml-5 cursor-pointer">
+          <input
+            type="radio"
+            name="radio-1"
+            className="radio radio-primary"
+            value="ALL"
+            defaultChecked
+            checked={soldStatus === 'ALL'}
+            onChange={handleOptionChange}
+          />
+          <span className="ml-1">ALL</span>
+        </label>
+        <label className="text-black ml-3 cursor-pointer">
+          <input
+            type="radio"
+            name="radio-1"
+            className="radio radio-primary"
+            value="SOLD"
+            checked={soldStatus === 'SOLD'}
+            onChange={handleOptionChange}
+          />
+          <span className="ml-1">SOLD</span>
+        </label>
+        <label className="text-black ml-3 cursor-pointer">
+          <input
+            type="radio"
+            name="radio-1"
+            className="radio radio-primary"
+            value="UNSOLD"
+            checked={soldStatus === 'UNSOLD'}
+            onChange={handleOptionChange}
+          />
+          <span className="ml-1">UNSOLD</span>
+        </label>
 
-      {/* Display the items table */}
-      {items.length > 0 && (
-        <div className="mt-6">
-          <ItemsTable items={items} />
-        </div>
-      )}
+        {/* Display the items table */}
+        {items.length > 0 && (
+          <div className="mt-6">
+            <ItemsTable items={items} />
+          </div>
+        )}
+      </div>
     </>
   );
 };

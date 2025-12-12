@@ -43,6 +43,7 @@ const CreateCustomer = () => {
   return (
     <>
       <div className="p-6 bg-dark rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold mb-4 text-black">Add New Customer</h2>
         <form onSubmit={handleSubmit}>
           <fieldset className="fieldset">
             <legend className="fieldset-legend text-black">Name</legend>

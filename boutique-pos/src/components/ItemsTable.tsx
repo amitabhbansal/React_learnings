@@ -40,6 +40,7 @@ const ItemsTable = ({ items }: ItemsTableProps) => {
               <th className="text-right">Cost</th>
               <th className="text-right">Marked</th>
               <th className="text-right">Selling</th>
+              <th className="text-right">Profit</th>
               <th>Status</th>
               <th>Remarks</th>
             </tr>
@@ -47,36 +48,51 @@ const ItemsTable = ({ items }: ItemsTableProps) => {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={10} className="text-center text-gray-500 py-8">
+                <td colSpan={11} className="text-center text-gray-500 py-8">
                   No items found
                 </td>
               </tr>
             ) : (
-              items.map((item, index) => (
-                <tr
-                  key={item.$id || index}
-                  className={`text-gray-200 border-b border-gray-800 hover:bg-gray-800 ${item.sold ? 'opacity-50' : ''}`}
-                >
-                  <td>{index + 1}</td>
-                  <td className="font-mono text-sm">{item.itemId}</td>
-                  <td>{item.title || '-'}</td>
-                  <td>{item.color || '-'}</td>
-                  <td>{item.size || '-'}</td>
-                  <td className="text-right">{formatCurrency(item.costPrice)}</td>
-                  <td className="text-right">{formatCurrency(item.markedPrice)}</td>
-                  <td className="text-right font-semibold text-green-400">
-                    {formatCurrency(item.defaultSellingPrice ?? 0)}
-                  </td>
-                  <td>
-                    {item.sold ? (
-                      <span className="badge badge-error badge-sm">SOLD</span>
-                    ) : (
-                      <span className="badge badge-success badge-sm">AVAILABLE</span>
-                    )}
-                  </td>
-                  <td className="text-sm text-gray-400">{item.remarks || '-'}</td>
-                </tr>
-              ))
+              items.map((item, index) => {
+                const sellingPrice = item.defaultSellingPrice ?? 0;
+                const hasSellingPrice = sellingPrice > 0;
+                const profit = hasSellingPrice ? sellingPrice - item.costPrice : null;
+                const profitColor =
+                  profit === null
+                    ? 'text-gray-200'
+                    : profit >= 0
+                      ? 'text-green-400'
+                      : 'text-red-400';
+
+                return (
+                  <tr
+                    key={item.$id || index}
+                    className={`text-gray-200 border-b border-gray-800 hover:bg-gray-800 ${item.sold ? 'opacity-50' : ''}`}
+                  >
+                    <td>{index + 1}</td>
+                    <td className="font-mono text-sm">{item.itemId}</td>
+                    <td>{item.title || '-'}</td>
+                    <td>{item.color || '-'}</td>
+                    <td>{item.size || '-'}</td>
+                    <td className="text-right">{formatCurrency(item.costPrice)}</td>
+                    <td className="text-right">{formatCurrency(item.markedPrice)}</td>
+                    <td className="text-right">
+                      {hasSellingPrice ? formatCurrency(sellingPrice) : '-'}
+                    </td>
+                    <td className={`text-right font-semibold ${profitColor}`}>
+                      {profit !== null ? formatCurrency(profit) : '-'}
+                    </td>
+                    <td>
+                      {item.sold ? (
+                        <span className="badge badge-error badge-sm">SOLD</span>
+                      ) : (
+                        <span className="badge badge-success badge-sm">AVAILABLE</span>
+                      )}
+                    </td>
+                    <td className="text-sm text-gray-400">{item.remarks || '-'}</td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
