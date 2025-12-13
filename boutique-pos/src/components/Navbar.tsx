@@ -21,12 +21,7 @@ const Navbar = () => {
           </li>
           <li>
             <Link to="/customers" className={isActive('/customers') ? 'active' : ''}>
-              Search Customer
-            </Link>
-          </li>
-          <li>
-            <Link to="/add-customer" className={isActive('/add-customer') ? 'active' : ''}>
-              Add Customer
+              Customers
             </Link>
           </li>
           <li>
