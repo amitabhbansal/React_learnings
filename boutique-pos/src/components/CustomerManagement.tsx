@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Customer } from '../types';
 
@@ -8,6 +9,8 @@ const CustomerManagement = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [createError, setCreateError] = useState('');
 
   // Form state for creating customer
   const [newCustomer, setNewCustomer] = useState({
@@ -18,6 +21,7 @@ const CustomerManagement = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewCustomer((prev) => ({ ...prev, [name]: value }));
+    setCreateError(''); // Clear error when user types
   };
 
   const resetForm = () => {
@@ -25,46 +29,52 @@ const CustomerManagement = () => {
       name: '',
       phone: '',
     });
+    setCreateError(''); // Clear error when reset
   };
 
   const fetchCustomer = async () => {
+    setSearchError('');
     if (!phone.trim() || phone.length !== 10) {
-      alert('Please enter a valid 10-digit phone number');
+      setSearchError('Please enter a valid 10-digit phone number');
       return;
     }
 
     setSearchLoading(true);
+    setCustomer(null);
     try {
       const c = await service.getCustomerByPhone(phone);
       console.log('Customer fetched:', c);
 
       if (c == null) {
-        alert('No customer found with this phone number');
-        setCustomer(null);
+        setSearchError('No customer found with this phone number');
+        toast.error('No customer found with this phone number');
       } else {
         const customerData: Customer = {
           phone: c.phone,
           name: c.name,
         };
         setCustomer(customerData);
+        toast.success('Customer found!');
       }
     } catch (error) {
       console.error('Error fetching customer:', error);
-      alert('Error fetching customer. Please try again.');
+      setSearchError('Error fetching customer. Please try again.');
+      toast.error('Error fetching customer. Please try again.');
     } finally {
       setSearchLoading(false);
     }
   };
 
   const createCustomer = async () => {
+    setCreateError('');
     // Validation
     if (!newCustomer.name.trim()) {
-      alert('Please enter a name');
+      setCreateError('Please enter a name');
       return;
     }
 
     if (!/^\d{10}$/.test(newCustomer.phone)) {
-      alert('Please enter a valid 10-digit phone number');
+      setCreateError('Please enter a valid 10-digit phone number');
       return;
     }
 
@@ -73,18 +83,20 @@ const CustomerManagement = () => {
       // Check if phone exists
       const exists = await service.getCustomerByPhone(newCustomer.phone);
       if (exists) {
-        alert(`Phone number already registered with name: ${exists.name}`);
+        setCreateError(`Phone number already registered with name: ${exists.name}`);
+        toast.error(`Phone number already registered with name: ${exists.name}`);
         return;
       }
 
       // Create customer
       await service.createCustomer(newCustomer);
-      alert(`Customer ${newCustomer.name} created successfully!`);
+      toast.success(`Customer ${newCustomer.name} created successfully!`);
       resetForm();
       setShowCreateForm(false);
     } catch (error) {
       console.error('Error creating customer:', error);
-      alert('Failed to create customer. Please try again.');
+      setCreateError('Failed to create customer. Please try again.');
+      toast.error('Failed to create customer. Please try again.');
     } finally {
       setCreateLoading(false);
     }
@@ -96,7 +108,14 @@ const CustomerManagement = () => {
         <h2 className="text-2xl font-bold">Customer Management</h2>
         <button
           className="btn btn-success btn-sm gap-2"
-          onClick={() => setShowCreateForm(!showCreateForm)}
+          onClick={() => {
+            if (showCreateForm) {
+              // Reset form and errors when closing
+              resetForm();
+              setCreateError('');
+            }
+            setShowCreateForm(!showCreateForm);
+          }}
         >
           {showCreateForm ? (
             <>
@@ -161,6 +180,23 @@ const CustomerManagement = () => {
                 value={newCustomer.name}
                 onChange={handleInputChange}
               />
+              {createError && !newCustomer.name.trim() && createError.includes('name') && (
+                <div className="text-error text-xs flex items-center gap-1 mt-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3 w-3"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span>{createError}</span>
+                </div>
+              )}
             </div>
 
             {/* Phone Number */}
@@ -179,6 +215,24 @@ const CustomerManagement = () => {
                 onChange={handleInputChange}
                 maxLength={10}
               />
+              {createError &&
+                (createError.includes('phone') || createError.includes('registered')) && (
+                  <div className="text-error text-xs flex items-center gap-1 mt-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>{createError}</span>
+                  </div>
+                )}
               <label className="label">
                 <span className="label-text-alt">Must be exactly 10 digits</span>
               </label>
@@ -237,17 +291,40 @@ const CustomerManagement = () => {
       {/* Search Customer Section */}
       <div>
         <h3 className="text-lg font-semibold mb-3">Search Customer</h3>
+
         <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Enter 10-digit phone number..."
-            className="input input-bordered flex-1"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && fetchCustomer()}
-            disabled={createLoading}
-            maxLength={10}
-          />
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Enter 10-digit phone number..."
+              className="input input-bordered w-full"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setSearchError(''); // Clear error when user types
+              }}
+              onKeyPress={(e) => e.key === 'Enter' && fetchCustomer()}
+              disabled={createLoading}
+              maxLength={10}
+            />
+            {searchError && (
+              <div className="text-error text-xs flex items-center gap-1 mt-1">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3 w-3"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span>{searchError}</span>
+              </div>
+            )}
+          </div>
           <button
             className="btn btn-primary gap-2"
             onClick={fetchCustomer}

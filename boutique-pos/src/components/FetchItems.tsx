@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Item } from '../types';
 import ItemsTable from './ItemsTable';
@@ -11,6 +12,9 @@ const FetchItems = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [fetchError, setFetchError] = useState('');
 
   // Form state for creating item
   const [newItem, setNewItem] = useState({
@@ -26,11 +30,13 @@ const FetchItems = () => {
 
   const handleOptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSoldStatus(e.target.value);
+    setFetchError(''); // Clear error when filter changes
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewItem((prev) => ({ ...prev, [name]: value }));
+    setCreateError(''); // Clear error when user types
   };
 
   const resetForm = () => {
@@ -44,11 +50,13 @@ const FetchItems = () => {
       defaultSellingPrice: '',
       remarks: '',
     });
+    setCreateError(''); // Clear error when reset
   };
 
   const fetchAllItems = async () => {
     setLoading(true);
     setItemId('');
+    setFetchError('');
     console.log('selected radio', soldStatus);
     try {
       const fetchedItems = await service.getItems(
@@ -56,17 +64,20 @@ const FetchItems = () => {
       );
       console.log(fetchedItems);
       setItems(fetchedItems);
+      toast.success(`Fetched ${fetchedItems.length} items`);
     } catch (error) {
       console.error('Error fetching items:', error);
-      alert('Error fetching items. Please try again.');
+      setFetchError('Error fetching items. Please try again.');
+      toast.error('Error fetching items. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const fetchItemById = async () => {
+    setSearchError('');
     if (!itemId.trim()) {
-      alert('Please enter an item ID');
+      setSearchError('Please enter an item ID');
       return;
     }
 
@@ -76,30 +87,34 @@ const FetchItems = () => {
       if (item) {
         setItems([item]);
         console.log('Item found:', item);
+        toast.success('Item found!');
       } else {
-        alert(`No item found with ID: ${itemId}`);
+        setSearchError(`No item found with ID: ${itemId}`);
+        toast.error(`No item found with ID: ${itemId}`);
         setItems([]);
       }
     } catch (error) {
       console.error('Error fetching item by ID:', error);
-      alert('Error fetching item. Please try again.');
+      setSearchError('Error fetching item. Please try again.');
+      toast.error('Error fetching item. Please try again.');
     } finally {
       setSearchLoading(false);
     }
   };
 
   const createItem = async () => {
+    setCreateError('');
     // Validate required fields
     if (!newItem.itemId.trim()) {
-      alert('Item ID is required');
+      setCreateError('Item ID is required');
       return;
     }
     if (!newItem.costPrice || parseFloat(newItem.costPrice) <= 0) {
-      alert('Valid cost price is required');
+      setCreateError('Valid cost price is required');
       return;
     }
     if (!newItem.markedPrice || parseFloat(newItem.markedPrice) <= 0) {
-      alert('Valid marked price is required');
+      setCreateError('Valid marked price is required');
       return;
     }
 
@@ -120,15 +135,17 @@ const FetchItems = () => {
       };
 
       await service.createItem(itemData);
-      alert('Item created successfully!');
+      toast.success('Item created successfully!');
       resetForm();
+      setShowCreateForm(false);
       // Optionally refresh the items list
       if (items.length > 0) {
         await fetchAllItems();
       }
     } catch (error) {
       console.error('Error creating item:', error);
-      alert('Error creating item. Please try again.');
+      setCreateError('Error creating item. Please try again.');
+      toast.error('Error creating item. Please try again.');
     } finally {
       setCreateLoading(false);
     }
@@ -140,7 +157,14 @@ const FetchItems = () => {
           <h2 className="text-2xl font-bold">Item Management</h2>
           <button
             className="btn btn-success btn-sm gap-2"
-            onClick={() => setShowCreateForm(!showCreateForm)}
+            onClick={() => {
+              if (showCreateForm) {
+                // Reset form and errors when closing
+                resetForm();
+                setCreateError('');
+              }
+              setShowCreateForm(!showCreateForm);
+            }}
           >
             {showCreateForm ? (
               <>
@@ -214,6 +238,23 @@ const FetchItems = () => {
                     value={newItem.itemId}
                     onChange={handleInputChange}
                   />
+                  {createError && createError.includes('Item ID') && (
+                    <div className="text-error text-xs flex items-center gap-1 mt-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3 w-3"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span>{createError}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="form-control w-full">
                   <label className="label">
@@ -278,6 +319,23 @@ const FetchItems = () => {
                     step="0.01"
                     min="0"
                   />
+                  {createError && createError.includes('cost price') && (
+                    <div className="text-error text-xs flex items-center gap-1 mt-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3 w-3"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span>{createError}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="form-control w-full">
                   <label className="label">
@@ -295,6 +353,23 @@ const FetchItems = () => {
                     step="0.01"
                     min="0"
                   />
+                  {createError && createError.includes('marked price') && (
+                    <div className="text-error text-xs flex items-center gap-1 mt-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3 w-3"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span>{createError}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="form-control w-full">
                   <label className="label">
@@ -435,49 +510,92 @@ const FetchItems = () => {
                 <span className="label-text">Available</span>
               </label>
             </div>
+            {/* Fetch Error Display */}
+            {fetchError && (
+              <div className="text-error text-xs flex items-center gap-1 mt-1">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3 w-3"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span>{fetchError}</span>
+              </div>
+            )}
           </div>
 
           {/* Right Section: Search by Item ID */}
-          <div className="flex gap-2 lg:ml-auto w-full lg:w-auto">
-            <input
-              type="text"
-              placeholder="Search by Item ID..."
-              className="input input-bordered input-sm lg:input-md flex-1 lg:w-64"
-              value={itemId}
-              onChange={(e) => setItemId(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && fetchItemById()}
-              disabled={createLoading}
-            />
-            <button
-              className="btn btn-secondary btn-sm lg:btn-md"
-              onClick={fetchItemById}
-              disabled={searchLoading || loading || createLoading}
-            >
-              {searchLoading ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  <span className="hidden sm:inline">Searching</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline">Search</span>
-                </>
-              )}
-            </button>
+          <div className="flex flex-col gap-2 lg:ml-auto w-full lg:w-auto">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Search by Item ID..."
+                  className="input input-bordered input-sm lg:input-md w-full lg:w-64"
+                  value={itemId}
+                  onChange={(e) => {
+                    setItemId(e.target.value);
+                    setSearchError(''); // Clear error when user types
+                  }}
+                  onKeyPress={(e) => e.key === 'Enter' && fetchItemById()}
+                  disabled={createLoading}
+                />
+                {/* Search Error Display */}
+                {searchError && (
+                  <div className="text-error text-xs flex items-center gap-1 mt-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>{searchError}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                className="btn btn-secondary btn-sm lg:btn-md"
+                onClick={fetchItemById}
+                disabled={searchLoading || loading || createLoading}
+              >
+                {searchLoading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    <span className="hidden sm:inline">Searching</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">Search</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
