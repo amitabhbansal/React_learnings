@@ -9,9 +9,41 @@ const FetchItems = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [itemId, setItemId] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+
+  // Form state for creating item
+  const [newItem, setNewItem] = useState({
+    itemId: '',
+    title: '',
+    color: '',
+    size: '',
+    costPrice: '',
+    markedPrice: '',
+    defaultSellingPrice: '',
+    remarks: '',
+  });
 
   const handleOptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSoldStatus(e.target.value);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewItem((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () => {
+    setNewItem({
+      itemId: '',
+      title: '',
+      color: '',
+      size: '',
+      costPrice: '',
+      markedPrice: '',
+      defaultSellingPrice: '',
+      remarks: '',
+    });
   };
 
   const fetchAllItems = async () => {
@@ -55,10 +87,299 @@ const FetchItems = () => {
       setSearchLoading(false);
     }
   };
+
+  const createItem = async () => {
+    // Validate required fields
+    if (!newItem.itemId.trim()) {
+      alert('Item ID is required');
+      return;
+    }
+    if (!newItem.costPrice || parseFloat(newItem.costPrice) <= 0) {
+      alert('Valid cost price is required');
+      return;
+    }
+    if (!newItem.markedPrice || parseFloat(newItem.markedPrice) <= 0) {
+      alert('Valid marked price is required');
+      return;
+    }
+
+    setCreateLoading(true);
+    try {
+      const itemData: Omit<Item, '$id' | '$createdAt' | '$updatedAt'> = {
+        itemId: newItem.itemId.trim(),
+        title: newItem.title.trim() || undefined,
+        color: newItem.color.trim() || undefined,
+        size: newItem.size.trim() || undefined,
+        costPrice: parseFloat(newItem.costPrice),
+        markedPrice: parseFloat(newItem.markedPrice),
+        defaultSellingPrice: newItem.defaultSellingPrice
+          ? parseFloat(newItem.defaultSellingPrice)
+          : undefined,
+        remarks: newItem.remarks.trim() || undefined,
+        sold: false,
+      };
+
+      await service.createItem(itemData);
+      alert('Item created successfully!');
+      resetForm();
+      // Optionally refresh the items list
+      if (items.length > 0) {
+        await fetchAllItems();
+      }
+    } catch (error) {
+      console.error('Error creating item:', error);
+      alert('Error creating item. Please try again.');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
   return (
     <>
       <div className="p-6 bg-base-200 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-6">Item Management</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Item Management</h2>
+          <button
+            className="btn btn-success btn-sm gap-2"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+          >
+            {showCreateForm ? (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Cancel
+              </>
+            ) : (
+              <>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Add New Item
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Create Item Form */}
+        {showCreateForm && (
+          <div className="mb-6 p-6 bg-base-300 rounded-lg border-2 border-success shadow-lg">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-success"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Create New Item
+            </h3>
+
+            <div className="space-y-4">
+              {/* Row 1: Item ID and Title */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Item ID <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    name="itemId"
+                    placeholder="e.g., ITM001"
+                    className="input input-bordered w-full"
+                    value={newItem.itemId}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">Title</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    placeholder="e.g., Cotton T-Shirt"
+                    className="input input-bordered w-full"
+                    value={newItem.title}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Color and Size */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">Color</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="color"
+                    placeholder="e.g., Blue"
+                    className="input input-bordered w-full"
+                    value={newItem.color}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">Size</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="size"
+                    placeholder="e.g., M, L, XL"
+                    className="input input-bordered w-full"
+                    value={newItem.size}
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Prices */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Cost Price <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    name="costPrice"
+                    placeholder="0.00"
+                    className="input input-bordered w-full"
+                    value={newItem.costPrice}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Marked Price <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    name="markedPrice"
+                    placeholder="0.00"
+                    className="input input-bordered w-full"
+                    value={newItem.markedPrice}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-medium">Selling Price</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="defaultSellingPrice"
+                    placeholder="0.00"
+                    className="input input-bordered w-full"
+                    value={newItem.defaultSellingPrice}
+                    onChange={handleInputChange}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Remarks */}
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text font-medium">Remarks</span>
+                </label>
+                <textarea
+                  name="remarks"
+                  placeholder="Additional notes or comments..."
+                  className="textarea textarea-bordered w-full h-20"
+                  value={newItem.remarks}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  className="btn btn-success gap-2"
+                  onClick={createItem}
+                  disabled={createLoading}
+                >
+                  {createLoading ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Create Item
+                    </>
+                  )}
+                </button>
+                <button
+                  className="btn btn-ghost gap-2"
+                  onClick={resetForm}
+                  disabled={createLoading}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
           {/* Left Section: Fetch Items with Filters */}
@@ -66,7 +387,7 @@ const FetchItems = () => {
             <button
               className="btn btn-primary min-w-[100px]"
               onClick={fetchAllItems}
-              disabled={loading || searchLoading}
+              disabled={loading || searchLoading || createLoading}
             >
               {loading ? (
                 <>
@@ -125,11 +446,12 @@ const FetchItems = () => {
               value={itemId}
               onChange={(e) => setItemId(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && fetchItemById()}
+              disabled={createLoading}
             />
             <button
               className="btn btn-secondary btn-sm lg:btn-md"
               onClick={fetchItemById}
-              disabled={searchLoading || loading}
+              disabled={searchLoading || loading || createLoading}
             >
               {searchLoading ? (
                 <>

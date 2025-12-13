@@ -31,7 +31,7 @@ const Navbar = () => {
           </li>
           <li>
             <Link to="/items" className={isActive('/items') ? 'active' : ''}>
-              View Items
+              Items
             </Link>
           </li>
         </ul>
