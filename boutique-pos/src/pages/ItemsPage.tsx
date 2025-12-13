@@ -1,9 +1,9 @@
-import FetchItems from '../components/FetchItems';
+import ItemManagement from '../components/ItemManagement';
 
 const ItemsPage = () => {
   return (
     <div>
-      <FetchItems />
+      <ItemManagement />
     </div>
   );
 };

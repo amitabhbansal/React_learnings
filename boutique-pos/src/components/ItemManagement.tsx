@@ -4,7 +4,7 @@ import service from '../appwrite/config';
 import type { Item } from '../types';
 import ItemsTable from './ItemsTable';
 
-const FetchItems = () => {
+const ItemManagement = () => {
   const [soldStatus, setSoldStatus] = useState('ALL');
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
@@ -610,4 +610,4 @@ const FetchItems = () => {
   );
 };
 
-export default FetchItems;
+export default ItemManagement;

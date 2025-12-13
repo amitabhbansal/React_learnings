@@ -9,7 +9,7 @@ const Home = () => {
             above to get started.
           </p>
           <div className="flex gap-4 justify-center">
-            <a href="/add-customer" className="btn btn-primary">
+            <a href="/customers" className="btn btn-primary">
               Add Customer
             </a>
             <a href="/items" className="btn btn-outline">
