@@ -6,40 +6,40 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="bg-gradient-to-r from-boutique-primary via-boutique-dark to-boutique-primary shadow-2xl mb-8 border-b-2 border-boutique-secondary/70">
+    <div className="bg-gradient-to-r from-purple-900 via-purple-950 to-purple-900 shadow-xl mb-8 border-b-2 border-boutique-secondary">
       <div className="navbar max-w-7xl mx-auto">
         <div className="navbar-start">
           <Link
             to="/"
-            className="flex items-center gap-3 px-4 py-2 hover:bg-boutique-dark/30 rounded-lg transition-all duration-300"
+            className="flex items-center gap-3 px-4 py-2 hover:bg-white/10 rounded-xl transition-all duration-300 group"
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-boutique-secondary to-boutique-accent rounded-lg flex items-center justify-center shadow-lg">
-              <span className="text-boutique-primary font-bold text-xl font-serif">BB</span>
+            <div className="w-10 h-10 bg-gradient-to-br from-boutique-secondary to-amber-300 rounded-xl flex items-center justify-center shadow-lg border border-white/20 group-hover:scale-110 transition-transform duration-300">
+              <span className="text-boutique-dark font-bold text-xl font-serif">BB</span>
             </div>
             <div className="flex flex-col">
               <span className="text-white font-serif text-2xl font-bold tracking-tight drop-shadow-lg">
                 Bansal Boutique
               </span>
-              <span className="text-boutique-secondary text-xs font-semibold tracking-widest uppercase drop-shadow">
+              <span className="text-amber-200 text-xs font-semibold tracking-widest uppercase drop-shadow">
                 Point of Sale
               </span>
             </div>
           </Link>
         </div>
         <div className="navbar-center hidden lg:flex">
-          <ul className="menu menu-horizontal px-1 gap-1">
+          <ul className="menu menu-horizontal px-1 gap-2">
             <li>
               <Link
                 to="/"
-                className={`font-medium transition-all duration-300 ${
+                className={`font-semibold transition-all duration-300 rounded-xl ${
                   isActive('/')
-                    ? 'bg-boutique-secondary text-boutique-primary font-semibold'
-                    : 'text-boutique-light hover:bg-boutique-dark/50 hover:text-boutique-secondary'
+                    ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
+                    : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
                 }`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-5 w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -57,15 +57,15 @@ const Navbar = () => {
             <li>
               <Link
                 to="/customers"
-                className={`font-medium transition-all duration-300 ${
+                className={`font-semibold transition-all duration-300 rounded-xl ${
                   isActive('/customers')
-                    ? 'bg-boutique-secondary text-boutique-primary font-semibold'
-                    : 'text-boutique-light hover:bg-boutique-dark/50 hover:text-boutique-secondary'
+                    ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
+                    : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
                 }`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-5 w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -83,15 +83,15 @@ const Navbar = () => {
             <li>
               <Link
                 to="/items"
-                className={`font-medium transition-all duration-300 ${
+                className={`font-semibold transition-all duration-300 rounded-xl ${
                   isActive('/items')
-                    ? 'bg-boutique-secondary text-boutique-primary font-semibold'
-                    : 'text-boutique-light hover:bg-boutique-dark/50 hover:text-boutique-secondary'
+                    ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
+                    : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
                 }`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-5 w-5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -109,11 +109,11 @@ const Navbar = () => {
           </ul>
         </div>
         <div className="navbar-end">
-          <div className="flex items-center gap-2 bg-boutique-dark/30 px-4 py-2 rounded-full border border-boutique-secondary/30">
-            <div className="w-8 h-8 bg-gradient-to-br from-boutique-secondary to-boutique-accent rounded-full flex items-center justify-center">
-              <span className="text-boutique-primary font-bold text-sm">M</span>
+          <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full border border-boutique-secondary/50 hover:bg-white/20 transition-all duration-300 backdrop-blur-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-boutique-secondary to-amber-300 rounded-full flex items-center justify-center shadow-lg">
+              <span className="text-boutique-dark font-bold text-sm">M</span>
             </div>
-            <span className="text-boutique-light font-medium text-sm">Madhu</span>
+            <span className="text-white font-semibold text-sm">Madhu</span>
           </div>
         </div>
       </div>
