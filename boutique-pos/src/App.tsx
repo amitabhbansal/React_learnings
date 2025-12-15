@@ -8,7 +8,7 @@ import ItemsPage from './pages/ItemsPage';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-amber-100">
+    <div className="min-h-screen bg-gradient-to-br from-purple-200 via-amber-100 to-purple-100">
       <Toaster
         position="top-right"
         toastOptions={{
