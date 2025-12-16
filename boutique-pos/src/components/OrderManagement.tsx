@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Order } from '../types';
@@ -23,7 +23,10 @@ const OrderManagement = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
-  console.log('order management rendering');
+
+  // Customer validation state
+  const [customerExists, setCustomerExists] = useState(false);
+
   // Form state for creating order
   const [newOrder, setNewOrder] = useState({
     customerPhone: '',
@@ -48,13 +51,40 @@ const OrderManagement = () => {
     },
   ]);
 
-  // Debounce timers for item validation
+  // Debounce timers for item and customer validation
   const itemDebounceTimers = useRef<{ [key: number]: ReturnType<typeof setTimeout> }>({});
+  const customerDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+
+    // Handle customer phone with validation
+    if (name === 'customerPhone') {
+      const phone = value.replace(/\D/g, '').slice(0, 10); // Only digits, max 10
+      setNewOrder((prev) => ({
+        ...prev,
+        customerPhone: phone,
+        customerName: phone.length === 10 && customerExists ? prev.customerName : '', // Clear name if changing phone
+      }));
+      setCustomerExists(false);
+      setCreateError('');
+
+      // Clear existing timer
+      if (customerDebounceTimer.current) {
+        clearTimeout(customerDebounceTimer.current);
+      }
+
+      // Validate when 10 digits entered
+      if (phone.length === 10) {
+        customerDebounceTimer.current = setTimeout(() => {
+          validateCustomerPhone(phone);
+        }, 500);
+      }
+      return;
+    }
+
     setNewOrder((prev) => ({
       ...prev,
       [name]: name === 'totalAmount' || name === 'totalProfit' ? Number(value) : value,
@@ -62,98 +92,75 @@ const OrderManagement = () => {
     setCreateError('');
   };
 
-  const validateItemId = async (index: number, itemId: string) => {
-    const updatedItems = [...orderItems];
-
+  const validateCustomerPhone = async (phone: string) => {
     try {
-      const item = await service.getItemById(itemId);
-      if (item && !item.sold) {
-        // Item exists and is available
-        updatedItems[index] = {
-          ...updatedItems[index],
-          itemId: itemId,
-          costPrice: item.costPrice,
-          markedPrice: item.markedPrice,
-          discount: 0,
-          sellingPrice: 0, // Don't auto-fill selling price
-          itemExists: true,
-          isValidating: false,
-        };
-        toast.success(`Item ${itemId} found!`);
-      } else if (item && item.sold) {
-        // Item exists but is sold
-        updatedItems[index] = {
-          ...updatedItems[index],
-          itemId: itemId,
-          costPrice: 0,
-          markedPrice: 0,
-          discount: 0,
-          sellingPrice: 0,
-          itemExists: false,
-          isValidating: false,
-        };
-        toast.error(`Item ${itemId} is already sold!`);
+      const customer = await service.getCustomerByPhone(phone);
+      if (customer) {
+        setCustomerExists(true);
+        setNewOrder((prev) => ({
+          ...prev,
+          customerName: customer.name,
+        }));
       } else {
-        // Item doesn't exist
-        updatedItems[index] = {
-          ...updatedItems[index],
-          itemId: itemId,
-          costPrice: 0,
-          markedPrice: 0,
-          discount: 0,
-          sellingPrice: 0,
-          itemExists: false,
-          isValidating: false,
-        };
-        toast.error(`Item ${itemId} not found in database!`);
+        setCustomerExists(false);
       }
     } catch (error) {
-      console.error('Error fetching item:', error);
-      updatedItems[index] = {
-        ...updatedItems[index],
-        itemId: itemId,
-        costPrice: 0,
-        markedPrice: 0,
-        discount: 0,
-        sellingPrice: 0,
-        itemExists: false,
-        isValidating: false,
-      };
+      console.error('Error validating customer:', error);
+      setCustomerExists(false);
     }
-
-    setOrderItems(updatedItems);
   };
 
-  const handleItemChange = (index: number, field: keyof OrderItem, value: string | number) => {
-    const updatedItems = [...orderItems];
-    const currentItem = updatedItems[index];
+  const validateItemId = useCallback(
+    async (index: number, itemId: string) => {
+      const updatedItems = [...orderItems];
 
-    // Handle itemId with debounce
-    if (field === 'itemId' && typeof value === 'string') {
-      // Clear existing timer for this item
-      if (itemDebounceTimers.current[index]) {
-        clearTimeout(itemDebounceTimers.current[index]);
-      }
-
-      // Update itemId immediately
-      updatedItems[index] = {
-        ...currentItem,
-        itemId: value,
-        isValidating: value.trim().length > 0,
-      };
-      setOrderItems(updatedItems);
-
-      // Set new debounce timer
-      const trimmedValue = value.trim();
-      if (trimmedValue) {
-        itemDebounceTimers.current[index] = setTimeout(() => {
-          validateItemId(index, trimmedValue);
-        }, 800); // Wait 800ms after user stops typing
-      } else {
-        // Clear validation if empty
+      try {
+        const item = await service.getItemById(itemId);
+        if (item && !item.sold) {
+          // Item exists and is available
+          updatedItems[index] = {
+            ...updatedItems[index],
+            itemId: itemId,
+            costPrice: item.costPrice,
+            markedPrice: item.markedPrice,
+            discount: 0,
+            sellingPrice: 0, // Don't auto-fill selling price
+            itemExists: true,
+            isValidating: false,
+          };
+          toast.success(`Item ${itemId} found!`);
+        } else if (item && item.sold) {
+          // Item exists but is sold
+          updatedItems[index] = {
+            ...updatedItems[index],
+            itemId: itemId,
+            costPrice: 0,
+            markedPrice: 0,
+            discount: 0,
+            sellingPrice: 0,
+            itemExists: false,
+            isValidating: false,
+          };
+          toast.error(`Item ${itemId} is already sold!`);
+        } else {
+          // Item doesn't exist
+          updatedItems[index] = {
+            ...updatedItems[index],
+            itemId: itemId,
+            costPrice: 0,
+            markedPrice: 0,
+            discount: 0,
+            sellingPrice: 0,
+            itemExists: false,
+            isValidating: false,
+          };
+          toast.error(`Item ${itemId} not found in database!`);
+        }
+      } catch (error) {
+        console.error('Error fetching item:', error);
         updatedItems[index] = {
-          ...currentItem,
-          itemId: '',
+          ...updatedItems[index],
+          itemId: itemId,
           costPrice: 0,
           markedPrice: 0,
           discount: 0,
@@ -161,38 +168,86 @@ const OrderManagement = () => {
           itemExists: false,
           isValidating: false,
         };
-        setOrderItems(updatedItems);
       }
-      return;
-    }
 
-    // Handle discount change - calculate selling price
-    if (field === 'discount' && typeof value === 'number') {
-      const discount = value;
-      const sellingPrice = Math.max(0, currentItem.markedPrice - discount);
-      updatedItems[index] = {
-        ...currentItem,
-        discount,
-        sellingPrice,
-      };
-    }
-    // Handle selling price change - calculate discount
-    else if (field === 'sellingPrice' && typeof value === 'number') {
-      const sellingPrice = value;
-      const discount = Math.max(0, currentItem.markedPrice - sellingPrice);
-      updatedItems[index] = {
-        ...currentItem,
-        sellingPrice,
-        discount,
-      };
-    } else {
-      // For other fields
-      updatedItems[index] = { ...currentItem, [field]: value };
-    }
+      setOrderItems(updatedItems);
+    },
+    [orderItems]
+  );
 
-    setOrderItems(updatedItems);
-    setCreateError('');
-  };
+  const handleItemChange = useCallback(
+    (index: number, field: keyof OrderItem, value: string | number) => {
+      setOrderItems((prevItems) => {
+        const updatedItems = [...prevItems];
+        const currentItem = updatedItems[index];
+
+        // Handle itemId with debounce
+        if (field === 'itemId' && typeof value === 'string') {
+          // Clear existing timer for this item
+          if (itemDebounceTimers.current[index]) {
+            clearTimeout(itemDebounceTimers.current[index]);
+          }
+
+          // Update itemId immediately
+          updatedItems[index] = {
+            ...currentItem,
+            itemId: value,
+            isValidating: value.trim().length > 0,
+          };
+
+          // Set new debounce timer
+          const trimmedValue = value.trim();
+          if (trimmedValue) {
+            itemDebounceTimers.current[index] = setTimeout(() => {
+              validateItemId(index, trimmedValue);
+            }, 800); // Wait 800ms after user stops typing
+          } else {
+            // Clear validation if empty
+            updatedItems[index] = {
+              ...currentItem,
+              itemId: '',
+              costPrice: 0,
+              markedPrice: 0,
+              discount: 0,
+              sellingPrice: 0,
+              itemExists: false,
+              isValidating: false,
+            };
+          }
+          setCreateError('');
+          return updatedItems;
+        }
+
+        // Handle discount change - calculate selling price
+        if (field === 'discount' && typeof value === 'number') {
+          const discount = value;
+          const sellingPrice = Math.max(0, currentItem.markedPrice - discount);
+          updatedItems[index] = {
+            ...currentItem,
+            discount,
+            sellingPrice,
+          };
+        }
+        // Handle selling price change - calculate discount
+        else if (field === 'sellingPrice' && typeof value === 'number') {
+          const sellingPrice = value;
+          const discount = Math.max(0, currentItem.markedPrice - sellingPrice);
+          updatedItems[index] = {
+            ...currentItem,
+            sellingPrice,
+            discount,
+          };
+        } else {
+          // For other fields
+          updatedItems[index] = { ...currentItem, [field]: value };
+        }
+
+        setCreateError('');
+        return updatedItems;
+      });
+    },
+    [validateItemId]
+  );
 
   const addItem = () => {
     setOrderItems([
@@ -236,6 +291,7 @@ const OrderManagement = () => {
         isValidating: false,
       },
     ]);
+    setCustomerExists(false);
     setCreateError('');
   };
 
@@ -310,6 +366,20 @@ const OrderManagement = () => {
 
     setCreateLoading(true);
     try {
+      // Create customer if they don't exist
+      if (!customerExists && newOrder.customerPhone && newOrder.customerName.trim()) {
+        try {
+          await service.createCustomer({
+            phone: newOrder.customerPhone,
+            name: newOrder.customerName.trim(),
+          });
+          toast.success('New customer created!');
+        } catch (error) {
+          console.error('Error creating customer:', error);
+          // Don't fail the order if customer creation fails
+        }
+      }
+
       // Update each item in the items table with discount, selling price, and mark as sold
       await Promise.all(
         validItems.map(async (item) => {
@@ -496,21 +566,6 @@ const OrderManagement = () => {
                 <div className="form-control w-full">
                   <label className="label">
                     <span className="label-text font-semibold text-boutique-dark">
-                      Customer Name <span className="text-error">*</span>
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    name="customerName"
-                    placeholder="Enter customer name"
-                    className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
-                    value={newOrder.customerName}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-control w-full">
-                  <label className="label">
-                    <span className="label-text font-semibold text-boutique-dark">
                       Customer Phone <span className="text-error">*</span>
                     </span>
                   </label>
@@ -522,6 +577,27 @@ const OrderManagement = () => {
                     value={newOrder.customerPhone}
                     onChange={handleInputChange}
                     maxLength={10}
+                  />
+                </div>
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-dark">
+                      Customer Name <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    name="customerName"
+                    placeholder="Enter customer name"
+                    className={`input input-bordered w-full text-boutique-dark border-2 focus:outline-none transition-all ${
+                      customerExists
+                        ? 'bg-gray-100 border-boutique-accent/40 cursor-not-allowed'
+                        : 'bg-white border-boutique-accent/40 focus:border-boutique-secondary'
+                    }`}
+                    value={newOrder.customerName}
+                    onChange={handleInputChange}
+                    readOnly={customerExists}
+                    disabled={newOrder.customerPhone.length !== 10}
                   />
                 </div>
               </div>
@@ -772,11 +848,13 @@ const OrderManagement = () => {
                     <input
                       type="number"
                       className={`input input-bordered w-full font-bold border-2 border-boutique-accent/40 cursor-not-allowed ${
-                        newOrder.totalProfit >= 0
+                        newOrder.totalProfit > 0
                           ? 'bg-green-50 text-green-700'
-                          : 'bg-red-50 text-red-700'
+                          : newOrder.totalProfit < 0
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-gray-100 text-boutique-primary'
                       }`}
-                      value={newOrder.totalProfit || 0}
+                      value={newOrder.totalProfit !== 0 ? newOrder.totalProfit : ''}
                       readOnly
                     />
                   </div>
