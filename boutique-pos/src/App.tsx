@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import CustomersPage from './pages/CustomersPage';
 import ItemsPage from './pages/ItemsPage';
+import OrdersPage from './pages/OrdersPage';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/items" element={<ItemsPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
         </Routes>
       </div>
     </div>

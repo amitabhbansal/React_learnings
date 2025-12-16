@@ -16,6 +16,8 @@ export interface Item {
   costPrice: number;
   markedPrice: number;
   defaultSellingPrice?: number;
+  discount?: number; // Discount given when sold
+  sellingPrice?: number; // Actual selling price when sold
   $createdAt?: string;
   $updatedAt?: string;
 }
@@ -32,11 +34,11 @@ export interface OrderItem {
 export interface Order {
   $id?: string;
   customerPhone: string;
-  items: string; // JSON stringified array of OrderItem[]
+  customerName?: string; // Customer name stored directly in order
+  items: string; // JSON stringified array of OrderItem[] or simple string format
   status: 'pending' | 'completed' | 'stuck';
   remarks?: string;
   totalAmount: number;
-  totalDiscount?: number;
   totalProfit: number;
   saleDate: string;
   $createdAt?: string;
