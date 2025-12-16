@@ -333,8 +333,8 @@ const OrderManagement = () => {
     setCreateError('');
 
     // Validation
-    if (!/^\d{10}$/.test(newOrder.customerPhone)) {
-      setCreateError('Please enter a valid 10-digit phone number');
+    if (!/^[6-9]\d{9}$/.test(newOrder.customerPhone)) {
+      setCreateError('Please enter a valid Indian mobile number');
       return;
     }
 

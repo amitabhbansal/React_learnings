@@ -34,8 +34,9 @@ const CustomerManagement = () => {
 
   const fetchCustomer = async () => {
     setSearchError('');
-    if (!phone.trim() || phone.length !== 10) {
-      setSearchError('Please enter a valid 10-digit phone number');
+    setCustomer(null);
+    if (!phone.trim() || !/^[6-9]\d{9}$/.test(phone)) {
+      setSearchError('Please enter a valid Indian mobile number');
       return;
     }
 
@@ -73,8 +74,8 @@ const CustomerManagement = () => {
       return;
     }
 
-    if (!/^\d{10}$/.test(newCustomer.phone)) {
-      setCreateError('Please enter a valid 10-digit phone number');
+    if (!/^[6-9]\d{9}$/.test(newCustomer.phone)) {
+      setCreateError('Please enter a valid Indian mobile number');
       return;
     }
 
