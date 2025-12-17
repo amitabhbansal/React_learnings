@@ -129,7 +129,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
 
       // Only update if there are changes
       if (Object.keys(updates).length > 0) {
-        const updatedOrder = await service.updateOrder(currentOrder.$id!, updates);
+        await service.updateOrder(currentOrder.$id!, updates);
         toast.success(`Order updated successfully! Status: ${autoStatus}`);
 
         // Update local state
