@@ -585,9 +585,9 @@ const CustomerManagement = () => {
                                     setSelectedOrder(order);
                                     setModalMode('view');
                                   }}
-                                  className="text-boutique-primary hover:text-boutique-secondary underline decoration-dotted transition-colors cursor-pointer font-bold"
+                                  className="text-boutique-primary hover:text-boutique-secondary hover:underline transition-colors cursor-pointer font-bold"
                                 >
-                                  #{order.billNo}
+                                  {order.billNo}
                                 </button>
                               </td>
                               <td className="text-center">{formatDate(order.saleDate)}</td>

@@ -82,7 +82,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, onViewOrder, onEditOr
                   <td>
                     <button
                       onClick={() => onViewOrder(order)}
-                      className="font-mono text-sm font-bold text-boutique-secondary hover:text-boutique-primary hover:underline transition-colors"
+                      className="font-mono text-sm font-bold text-boutique-secondary hover:text-boutique-primary cursor-pointer hover:underline transition-colors"
                     >
                       {order.billNo}
                     </button>
