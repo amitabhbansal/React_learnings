@@ -24,7 +24,6 @@ const ItemManagement = () => {
     size: '',
     costPrice: '',
     markedPrice: '',
-    defaultSellingPrice: '',
     remarks: '',
   });
 
@@ -47,7 +46,6 @@ const ItemManagement = () => {
       size: '',
       costPrice: '',
       markedPrice: '',
-      defaultSellingPrice: '',
       remarks: '',
     });
     setCreateError(''); // Clear error when reset
@@ -127,9 +125,6 @@ const ItemManagement = () => {
         size: newItem.size.trim() || undefined,
         costPrice: parseFloat(newItem.costPrice),
         markedPrice: parseFloat(newItem.markedPrice),
-        defaultSellingPrice: newItem.defaultSellingPrice
-          ? parseFloat(newItem.defaultSellingPrice)
-          : undefined,
         remarks: newItem.remarks.trim() || undefined,
         sold: false,
       };
@@ -258,8 +253,8 @@ const ItemManagement = () => {
               </h3>
 
               <div className="space-y-4">
-                {/* Row 1: Item ID and Title */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Row 1: Item ID, Title, Color */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text font-semibold text-boutique-dark">
@@ -305,10 +300,6 @@ const ItemManagement = () => {
                       onChange={handleInputChange}
                     />
                   </div>
-                </div>
-
-                {/* Row 2: Color and Size */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text font-semibold text-boutique-dark">Color</span>
@@ -322,6 +313,10 @@ const ItemManagement = () => {
                       onChange={handleInputChange}
                     />
                   </div>
+                </div>
+
+                {/* Row 2: Size, Cost Price, Marked Price */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text font-semibold text-boutique-dark">Size</span>
@@ -335,10 +330,6 @@ const ItemManagement = () => {
                       onChange={handleInputChange}
                     />
                   </div>
-                </div>
-
-                {/* Row 3: Prices */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text font-semibold text-boutique-dark">
@@ -407,26 +398,9 @@ const ItemManagement = () => {
                       </div>
                     )}
                   </div>
-                  <div className="form-control w-full">
-                    <label className="label">
-                      <span className="label-text font-semibold text-boutique-dark">
-                        Selling Price
-                      </span>
-                    </label>
-                    <input
-                      type="number"
-                      name="defaultSellingPrice"
-                      placeholder="0.00"
-                      className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
-                      value={newItem.defaultSellingPrice}
-                      onChange={handleInputChange}
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
                 </div>
 
-                {/* Row 4: Remarks */}
+                {/* Row 3: Remarks */}
                 <div className="form-control w-full">
                   <label className="label">
                     <span className="label-text font-semibold text-boutique-dark">Remarks</span>
