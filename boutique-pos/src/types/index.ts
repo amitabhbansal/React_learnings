@@ -31,6 +31,13 @@ export interface OrderItem {
   size?: string;
 }
 
+export interface PaymentRecord {
+  amount: number;
+  date: string;
+  method: 'cash' | 'upi';
+  remarks?: string;
+}
+
 export interface Order {
   $id?: string;
   customerPhone: string;
@@ -40,6 +47,8 @@ export interface Order {
   remarks?: string;
   totalAmount: number;
   totalProfit: number;
+  amountPaid: number; // Total amount received so far
+  paymentHistory: string; // JSON stringified array of PaymentRecord[]
   saleDate: string;
   $createdAt?: string;
   $updatedAt?: string;

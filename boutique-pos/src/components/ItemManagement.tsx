@@ -519,7 +519,6 @@ const ItemManagement = () => {
                     name="radio-1"
                     className="radio radio-primary radio-sm"
                     value="ALL"
-                    defaultChecked
                     checked={soldStatus === 'ALL'}
                     onChange={handleOptionChange}
                   />

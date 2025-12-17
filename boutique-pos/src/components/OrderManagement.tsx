@@ -37,6 +37,8 @@ const OrderManagement = () => {
     status: 'pending' as 'pending' | 'completed' | 'stuck',
     totalAmount: 0,
     totalProfit: 0,
+    amountPaid: 0,
+    paymentMethod: 'cash' as 'cash' | 'upi',
   });
 
   // Array of items for the order
@@ -89,7 +91,10 @@ const OrderManagement = () => {
 
     setNewOrder((prev) => ({
       ...prev,
-      [name]: name === 'totalAmount' || name === 'totalProfit' ? Number(value) : value,
+      [name]:
+        name === 'totalAmount' || name === 'totalProfit' || name === 'amountPaid'
+          ? Number(value) || 0
+          : value,
     }));
     setCreateError('');
   };
@@ -282,6 +287,8 @@ const OrderManagement = () => {
       status: 'pending',
       totalAmount: 0,
       totalProfit: 0,
+      amountPaid: 0,
+      paymentMethod: 'cash',
     });
     setOrderItems([
       {
@@ -384,7 +391,44 @@ const OrderManagement = () => {
         }
       }
 
-      // Update each item in the items table with discount, selling price, and mark as sold
+      // Store item IDs with given status in the order
+      const itemsToStore = validItems.map((item) => ({
+        itemId: item.itemId,
+        given: item.given,
+      }));
+      const itemsJson = JSON.stringify(itemsToStore);
+
+      // Create payment history
+      const paymentHistory =
+        newOrder.amountPaid > 0
+          ? [
+              {
+                amount: newOrder.amountPaid,
+                date: new Date().toISOString(),
+                method: newOrder.paymentMethod,
+                remarks: 'Initial payment',
+              },
+            ]
+          : [];
+      const paymentHistoryJson = JSON.stringify(paymentHistory);
+
+      const orderData: Omit<Order, '$id' | '$createdAt' | '$updatedAt'> = {
+        customerPhone: newOrder.customerPhone,
+        customerName: newOrder.customerName,
+        items: itemsJson,
+        status: newOrder.status,
+        remarks: newOrder.remarks.trim() || undefined,
+        totalAmount: newOrder.totalAmount,
+        totalProfit: newOrder.totalProfit,
+        amountPaid: newOrder.amountPaid,
+        paymentHistory: paymentHistoryJson,
+        saleDate: newOrder.saleDate,
+      };
+
+      // Create order first
+      await service.createOrder(orderData);
+
+      // Only mark items as sold after order is successfully created
       await Promise.all(
         validItems.map(async (item) => {
           try {
@@ -400,25 +444,6 @@ const OrderManagement = () => {
         })
       );
 
-      // Store item IDs with given status in the order
-      const itemsToStore = validItems.map((item) => ({
-        itemId: item.itemId,
-        given: item.given,
-      }));
-      const itemsJson = JSON.stringify(itemsToStore);
-
-      const orderData: Omit<Order, '$id' | '$createdAt' | '$updatedAt'> = {
-        customerPhone: newOrder.customerPhone,
-        customerName: newOrder.customerName,
-        items: itemsJson,
-        status: newOrder.status,
-        remarks: newOrder.remarks.trim() || undefined,
-        totalAmount: newOrder.totalAmount,
-        totalProfit: newOrder.totalProfit,
-        saleDate: newOrder.saleDate,
-      };
-
-      await service.createOrder(orderData);
       toast.success('Order created successfully! Items marked as sold.');
       resetForm();
       setShowCreateForm(false);
@@ -734,7 +759,6 @@ const OrderManagement = () => {
                         {/* Discount - Editable */}
                         <div className="col-span-3 md:col-span-1">
                           <input
-                            type="number"
                             placeholder="Discount"
                             className="input input-sm input-bordered w-full bg-white text-boutique-dark border border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
                             value={item.discount || ''}
@@ -742,7 +766,6 @@ const OrderManagement = () => {
                               handleItemChange(index, 'discount', Number(e.target.value))
                             }
                             min="0"
-                            step="0.01"
                             disabled={!item.itemExists}
                           />
                         </div>
@@ -750,7 +773,6 @@ const OrderManagement = () => {
                         {/* Selling Price - Editable */}
                         <div className="col-span-3 md:col-span-2">
                           <input
-                            type="number"
                             placeholder="Selling Price*"
                             className="input input-sm input-bordered w-full bg-white text-boutique-dark border border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
                             value={item.sellingPrice || ''}
@@ -758,7 +780,6 @@ const OrderManagement = () => {
                               handleItemChange(index, 'sellingPrice', Number(e.target.value))
                             }
                             min="0"
-                            step="0.01"
                             disabled={!item.itemExists}
                           />
                         </div>
@@ -882,7 +903,7 @@ const OrderManagement = () => {
               {/* Financial Details - Auto Calculated */}
               <div className="bg-purple-50 p-4 rounded-lg border-2 border-boutique-accent/30">
                 <h4 className="font-semibold text-boutique-primary mb-3">Order Summary</h4>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                   <div>
                     <label className="label">
                       <span className="label-text font-semibold text-boutique-dark">
@@ -927,6 +948,68 @@ const OrderManagement = () => {
                       value={orderItems.filter((i) => i.itemExists).length}
                       readOnly
                     />
+                  </div>
+                </div>
+
+                {/* Payment Section */}
+                <div className="border-t-2 border-boutique-accent/30 pt-4">
+                  <h4 className="font-semibold text-boutique-primary mb-3">Payment Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Amount Received <span className="text-error">*</span>
+                        </span>
+                      </label>
+                      <input
+                        type="number"
+                        name="amountPaid"
+                        placeholder="Enter amount received"
+                        className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
+                        value={newOrder.amountPaid || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        max={newOrder.totalAmount}
+                      />
+                      <label className="label">
+                        <span className="label-text-alt text-boutique-dark/60">
+                          Can be partial/advance payment
+                        </span>
+                      </label>
+                    </div>
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Payment Method <span className="text-error">*</span>
+                        </span>
+                      </label>
+                      <select
+                        name="paymentMethod"
+                        className="select select-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
+                        value={newOrder.paymentMethod}
+                        onChange={handleInputChange}
+                      >
+                        <option value="cash">Cash</option>
+                        <option value="upi">UPI</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Amount Due
+                        </span>
+                      </label>
+                      <input
+                        type="number"
+                        className={`input input-bordered w-full font-bold border-2 border-boutique-accent/40 cursor-not-allowed ${
+                          newOrder.totalAmount - newOrder.amountPaid > 0
+                            ? 'bg-red-50 text-red-700'
+                            : 'bg-green-50 text-green-700'
+                        }`}
+                        value={newOrder.totalAmount - newOrder.amountPaid || 0}
+                        readOnly
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1119,6 +1202,8 @@ const OrderManagement = () => {
                     <th className="text-white">Date</th>
                     <th className="text-white">Status</th>
                     <th className="text-right text-white">Total Amount</th>
+                    <th className="text-right text-white">Amount Due</th>
+                    <th className="text-white">Payment</th>
                     <th className="text-right text-white">Profit</th>
                     <th className="text-white">Items</th>
                     <th className="text-white">Remarks</th>
@@ -1134,6 +1219,17 @@ const OrderManagement = () => {
                       console.error('Failed to parse items for order:', order.$id, error);
                       // If parsing fails, try to display as string
                     }
+
+                    // Calculate payment status
+                    const amountDue = order.totalAmount - (order.amountPaid || 0);
+                    const getPaymentStatus = () => {
+                      if (order.amountPaid === 0) return { text: 'Unpaid', class: 'badge-error' };
+                      if (amountDue === 0) return { text: 'Paid', class: 'badge-success' };
+                      if (order.amountPaid > 0 && amountDue > 0)
+                        return { text: 'Partial', class: 'badge-warning' };
+                      return { text: 'Paid', class: 'badge-success' };
+                    };
+                    const paymentStatus = getPaymentStatus();
 
                     return (
                       <tr
@@ -1161,6 +1257,16 @@ const OrderManagement = () => {
                         </td>
                         <td className="text-right font-bold text-boutique-primary">
                           {formatCurrency(order.totalAmount)}
+                        </td>
+                        <td
+                          className={`text-right font-bold ${amountDue > 0 ? 'text-red-600' : 'text-green-600'}`}
+                        >
+                          {amountDue > 0 ? formatCurrency(amountDue) : '₹0'}
+                        </td>
+                        <td>
+                          <span className={`badge ${paymentStatus.class} badge-sm font-semibold`}>
+                            {paymentStatus.text}
+                          </span>
                         </td>
                         <td
                           className={`text-right font-bold ${order.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
