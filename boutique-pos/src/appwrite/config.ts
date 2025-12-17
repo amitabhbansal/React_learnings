@@ -180,6 +180,23 @@ export class Service {
       return 1; // Default to 1 if error
     }
   }
+
+  async updateOrder(
+    documentId: string,
+    updates: Partial<Omit<Order, '$id' | '$createdAt' | '$updatedAt'>>
+  ) {
+    try {
+      return await this.databases.updateDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.orders,
+        documentId,
+        updates
+      );
+    } catch (error) {
+      console.error('Error updating order:', error);
+      throw error;
+    }
+  }
 }
 
 const service = new Service();

@@ -26,6 +26,14 @@ const OrderManagement = () => {
   const [createError, setCreateError] = useState('');
   const [nextBillNo, setNextBillNo] = useState<number>(1);
 
+  // Edit order state
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editOrderItems, setEditOrderItems] = useState<OrderItem[]>([]);
+  const [additionalPayment, setAdditionalPayment] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi'>('cash');
+
   // Customer validation state
   const [customerExists, setCustomerExists] = useState(false);
 
@@ -486,6 +494,111 @@ const OrderManagement = () => {
       stuck: 'badge bg-red-100 text-red-700 border-red-300',
     };
     return badges[status as keyof typeof badges] || badges.pending;
+  };
+
+  const openEditModal = (order: Order) => {
+    setEditingOrder(order);
+    setEditError('');
+    setAdditionalPayment(0);
+    setPaymentMethod('cash');
+
+    // Parse items
+    try {
+      const parsedItems = JSON.parse(order.items);
+      setEditOrderItems(parsedItems);
+    } catch (error) {
+      console.error('Error parsing items:', error);
+      setEditOrderItems([]);
+    }
+  };
+
+  const closeEditModal = () => {
+    setEditingOrder(null);
+    setEditOrderItems([]);
+    setAdditionalPayment(0);
+    setEditError('');
+  };
+
+  const toggleItemGiven = (index: number) => {
+    setEditOrderItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], given: !updated[index].given };
+      return updated;
+    });
+  };
+
+  const saveOrderChanges = async () => {
+    if (!editingOrder) return;
+
+    setEditLoading(true);
+    setEditError('');
+
+    try {
+      const updates: any = {};
+
+      // Update items if changed
+      const updatedItemsJson = JSON.stringify(editOrderItems);
+      if (updatedItemsJson !== editingOrder.items) {
+        updates.items = updatedItemsJson;
+      }
+
+      // Calculate new amount paid
+      let newAmountPaid = editingOrder.amountPaid;
+
+      // Add payment if provided
+      if (additionalPayment > 0) {
+        newAmountPaid = editingOrder.amountPaid + additionalPayment;
+        updates.amountPaid = newAmountPaid;
+
+        // Update payment history
+        let paymentHistory = [];
+        try {
+          paymentHistory = JSON.parse(editingOrder.paymentHistory || '[]');
+        } catch (e) {
+          paymentHistory = [];
+        }
+
+        paymentHistory.push({
+          amount: additionalPayment,
+          date: new Date().toISOString(),
+          method: paymentMethod,
+          remarks: 'Additional payment',
+        });
+
+        updates.paymentHistory = JSON.stringify(paymentHistory);
+      }
+
+      // Auto-determine order status based on payment and items
+      const amountDue = editingOrder.totalAmount - newAmountPaid;
+      const allItemsGiven = editOrderItems.every((item) => item.given === true);
+
+      let autoStatus: 'pending' | 'completed' | 'stuck';
+      if (amountDue === 0 && allItemsGiven) {
+        autoStatus = 'completed';
+      } else {
+        autoStatus = 'pending';
+      }
+
+      // Update status
+      updates.status = autoStatus;
+
+      // Only update if there are changes
+      if (Object.keys(updates).length > 0) {
+        await service.updateOrder(editingOrder.$id!, updates);
+        toast.success(`Order updated successfully! Status: ${autoStatus}`);
+        closeEditModal();
+        await fetchOrders(); // Refresh the list
+      } else {
+        toast('No changes to save');
+        closeEditModal();
+      }
+    } catch (error) {
+      console.error('Error updating order:', error);
+      setEditError('Failed to update order. Please try again.');
+      toast.error('Failed to update order');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   return (
@@ -1225,6 +1338,7 @@ const OrderManagement = () => {
                     <th className="text-right text-white">Profit</th>
                     <th className="text-white">Items</th>
                     <th className="text-white">Remarks</th>
+                    <th className="text-center text-white">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white">
@@ -1329,6 +1443,23 @@ const OrderManagement = () => {
                         <td className="text-sm text-boutique-dark/60 max-w-[200px] truncate">
                           {order.remarks || '-'}
                         </td>
+                        <td className="text-center">
+                          <button
+                            className="btn btn-xs bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-300"
+                            onClick={() => openEditModal(order)}
+                            title="Edit Order"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-3 w-3"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                            </svg>
+                            Edit
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -1338,6 +1469,253 @@ const OrderManagement = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Order Modal */}
+      {editingOrder && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-purple-900 via-purple-950 to-purple-900 p-6 border-b-2 border-boutique-secondary">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-serif font-bold text-white">
+                  Edit Order - Bill #{editingOrder.billNo}
+                </h3>
+                <button
+                  className="btn btn-sm btn-circle btn-ghost text-white hover:bg-white/20"
+                  onClick={closeEditModal}
+                  disabled={editLoading}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Customer Info */}
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-boutique-primary mb-2">Customer Details</h4>
+                <p className="text-sm">
+                  <span className="font-semibold">{editingOrder.customerName}</span>
+                  <span className="text-boutique-dark/60 ml-2">({editingOrder.customerPhone})</span>
+                </p>
+                <p className="text-sm text-boutique-dark/60">
+                  Sale Date: {formatDate(editingOrder.saleDate)}
+                </p>
+                <p className="text-sm mt-2">
+                  <span className="font-semibold">Current Status: </span>
+                  <span
+                    className={`${getStatusBadge(editingOrder.status)} badge-sm font-semibold uppercase`}
+                  >
+                    {editingOrder.status}
+                  </span>
+                </p>
+                <p className="text-xs text-boutique-dark/60 mt-2 italic">
+                  * Status auto-updates: Completed when fully paid & all items given, otherwise
+                  Pending
+                </p>
+              </div>
+
+              {/* Items - Toggle Given Status */}
+              <div>
+                <h4 className="font-semibold text-boutique-primary mb-3">Items Status</h4>
+                <div className="space-y-2">
+                  {editOrderItems.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-boutique-accent/30"
+                    >
+                      <span className="font-medium text-boutique-dark">{item.itemId}</span>
+                      <button
+                        type="button"
+                        className={`btn btn-xs gap-1 transition-all ${
+                          item.given
+                            ? 'bg-green-100 hover:bg-green-200 text-green-700 border-green-300'
+                            : 'bg-amber-100 hover:bg-amber-200 text-amber-700 border-amber-300'
+                        }`}
+                        onClick={() => toggleItemGiven(index)}
+                        disabled={editLoading}
+                      >
+                        {item.given ? (
+                          <>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-3 w-3"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Given
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-3 w-3"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Pending
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Payment Details */}
+              <div className="bg-amber-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-boutique-primary mb-3">Payment Summary</h4>
+                <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                  <div>
+                    <p className="text-boutique-dark/60">Total Amount</p>
+                    <p className="font-bold text-boutique-primary">
+                      {formatCurrency(editingOrder.totalAmount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-boutique-dark/60">Paid</p>
+                    <p className="font-bold text-green-600">
+                      {formatCurrency(editingOrder.amountPaid)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-boutique-dark/60">Due</p>
+                    <p className="font-bold text-red-600">
+                      {formatCurrency(editingOrder.totalAmount - editingOrder.amountPaid)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Add Payment */}
+                {editingOrder.totalAmount - editingOrder.amountPaid > 0 && (
+                  <div className="border-t-2 border-boutique-accent/30 pt-4">
+                    <h5 className="font-semibold text-boutique-dark mb-3">Record Payment</h5>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-semibold text-boutique-dark">
+                            Amount
+                          </span>
+                        </label>
+                        <input
+                          type="number"
+                          className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                          value={additionalPayment || ''}
+                          onChange={(e) => setAdditionalPayment(Number(e.target.value) || 0)}
+                          min="0"
+                          max={editingOrder.totalAmount - editingOrder.amountPaid}
+                          disabled={editLoading}
+                          placeholder="Enter amount"
+                        />
+                      </div>
+                      <div>
+                        <label className="label">
+                          <span className="label-text font-semibold text-boutique-dark">
+                            Method
+                          </span>
+                        </label>
+                        <select
+                          className="select select-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                          value={paymentMethod}
+                          onChange={(e) => setPaymentMethod(e.target.value as 'cash' | 'upi')}
+                          disabled={editLoading}
+                        >
+                          <option value="cash">Cash</option>
+                          <option value="upi">UPI</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Error Display */}
+              {editError && (
+                <div className="alert alert-error shadow-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  <span>{editError}</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  className="btn bg-gradient-to-r from-boutique-secondary to-amber-400 hover:from-amber-400 hover:to-boutique-secondary text-boutique-dark border-none gap-2 shadow-lg"
+                  onClick={saveOrderChanges}
+                  disabled={editLoading}
+                >
+                  {editLoading ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Save Changes
+                    </>
+                  )}
+                </button>
+                <button
+                  className="btn bg-white hover:bg-slate-100 text-boutique-primary border-2 border-boutique-accent/30"
+                  onClick={closeEditModal}
+                  disabled={editLoading}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
