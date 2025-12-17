@@ -2,6 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Order, PaymentRecord } from '../types';
+import { useApp } from '../context/AppContext';
 
 interface OrderItem {
   itemId: string;
@@ -16,6 +17,7 @@ interface OrderDetailsModalProps {
 }
 
 const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModalProps) => {
+  const { privacyMode } = useApp();
   const [isEditing, setIsEditing] = useState(mode === 'edit');
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -328,14 +330,16 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
                 <p className="text-boutique-dark/60">Amount Due</p>
                 <p className="font-bold text-red-600 text-lg">{formatCurrency(amountDue)}</p>
               </div>
-              <div>
-                <p className="text-boutique-dark/60">Profit</p>
-                <p
-                  className={`font-bold text-lg ${currentOrder.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {formatCurrency(currentOrder.totalProfit)}
-                </p>
-              </div>
+              {!privacyMode && (
+                <div>
+                  <p className="text-boutique-dark/60">Profit</p>
+                  <p
+                    className={`font-bold text-lg ${currentOrder.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    {formatCurrency(currentOrder.totalProfit)}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

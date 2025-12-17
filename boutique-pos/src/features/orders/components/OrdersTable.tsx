@@ -7,9 +7,15 @@ interface OrdersTableProps {
   orders: Order[];
   onViewOrder: (order: Order) => void;
   onEditOrder: (order: Order) => void;
+  privacyMode?: boolean;
 }
 
-const OrdersTable: React.FC<OrdersTableProps> = ({ orders, onViewOrder, onEditOrder }) => {
+const OrdersTable: React.FC<OrdersTableProps> = ({
+  orders,
+  onViewOrder,
+  onEditOrder,
+  privacyMode = false,
+}) => {
   const getStatusBadge = (status: string) => {
     const badges = {
       pending: 'badge bg-amber-100 text-amber-700 border-amber-300',
@@ -57,7 +63,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, onViewOrder, onEditOr
               <th className="text-right text-white">Total Amount</th>
               <th className="text-right text-white">Amount Due</th>
               <th className="text-white">Payment</th>
-              <th className="text-right text-white">Profit</th>
+              {!privacyMode && <th className="text-right text-white">Profit</th>}
               <th className="text-white">Items</th>
               <th className="text-white">Remarks</th>
               <th className="text-center text-white">Actions</th>
@@ -118,11 +124,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, onViewOrder, onEditOr
                       {formatCurrency(order.amountPaid)}
                     </span>
                   </td>
-                  <td
-                    className={`text-right font-bold ${order.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {formatCurrency(order.totalProfit)}
-                  </td>
+                  {!privacyMode && (
+                    <td
+                      className={`text-right font-bold ${order.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                    >
+                      {formatCurrency(order.totalProfit)}
+                    </td>
+                  )}
                   <td>
                     <span className="badge badge-sm bg-purple-100 text-purple-700 border-purple-300">
                       {orderItems.length} items

@@ -1,10 +1,12 @@
 import type { Item } from '../types';
+import { useApp } from '../context/AppContext';
 
 interface ItemsTableProps {
   items: Item[];
 }
 
 const ItemsTable = ({ items }: ItemsTableProps) => {
+  const { privacyMode } = useApp();
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -44,10 +46,10 @@ const ItemsTable = ({ items }: ItemsTableProps) => {
               <th className="text-white">Title</th>
               <th className="text-white">Color</th>
               <th className="text-white">Size</th>
-              <th className="text-right text-white">Cost</th>
+              {!privacyMode && <th className="text-right text-white">Cost</th>}
               <th className="text-right text-white">Marked</th>
               <th className="text-right text-white">Selling</th>
-              <th className="text-right text-white">Profit</th>
+              {!privacyMode && <th className="text-right text-white">Profit</th>}
               <th className="text-white">Status</th>
               <th className="text-white">Remarks</th>
             </tr>
@@ -55,7 +57,10 @@ const ItemsTable = ({ items }: ItemsTableProps) => {
           <tbody className="bg-white">
             {items.length === 0 ? (
               <tr>
-                <td colSpan={11} className="text-center text-boutique-dark/50 py-8">
+                <td
+                  colSpan={privacyMode ? 9 : 11}
+                  className="text-center text-boutique-dark/50 py-8"
+                >
                   No items found
                 </td>
               </tr>
@@ -83,14 +88,18 @@ const ItemsTable = ({ items }: ItemsTableProps) => {
                     <td className="font-medium">{item.title || '-'}</td>
                     <td>{item.color || '-'}</td>
                     <td>{item.size || '-'}</td>
-                    <td className="text-right font-medium">{formatCurrency(item.costPrice)}</td>
+                    {!privacyMode && (
+                      <td className="text-right font-medium">{formatCurrency(item.costPrice)}</td>
+                    )}
                     <td className="text-right font-medium">{formatCurrency(item.markedPrice)}</td>
                     <td className="text-right font-medium">
                       {hasSellingPrice ? formatCurrency(sellingPrice) : '-'}
                     </td>
-                    <td className={`text-right ${profitColor}`}>
-                      {profit !== null ? formatCurrency(profit) : '-'}
-                    </td>
+                    {!privacyMode && (
+                      <td className={`text-right ${profitColor}`}>
+                        {profit !== null ? formatCurrency(profit) : '-'}
+                      </td>
+                    )}
                     <td>
                       {item.sold ? (
                         <span className="badge bg-red-100 text-red-700 border-red-300 badge-sm font-semibold">

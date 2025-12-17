@@ -4,6 +4,7 @@ import service from '../appwrite/config';
 import type { Order } from '../types';
 import type { OrderItem, OrderFormData } from '../types/order';
 import { initialOrderFormData, initialOrderItem } from '../types/order';
+import { useApp } from '../context/AppContext';
 import OrderDetailsModal from './OrderDetailsModal';
 import {
   OrdersTable,
@@ -13,6 +14,7 @@ import {
 } from '../features/orders/components';
 
 const OrderManagement = () => {
+  const { privacyMode } = useApp();
   // State
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -590,13 +592,15 @@ const OrderManagement = () => {
                   </div>
 
                   {/* Column Headers */}
-                  <div className="grid grid-cols-12 gap-2 px-3 mb-2 text-xs font-semibold text-boutique-dark/70">
+                  <div
+                    className={`grid gap-2 px-3 mb-2 text-xs font-semibold text-boutique-dark/70 ${privacyMode ? 'grid-cols-10' : 'grid-cols-12'}`}
+                  >
                     <div className="col-span-12 md:col-span-2">Item ID</div>
-                    <div className="col-span-3 md:col-span-1">Cost</div>
+                    {!privacyMode && <div className="col-span-3 md:col-span-1">Cost</div>}
                     <div className="col-span-3 md:col-span-1">Marked</div>
                     <div className="col-span-3 md:col-span-1">Discount</div>
                     <div className="col-span-3 md:col-span-2">Selling Price</div>
-                    <div className="col-span-4 md:col-span-2">Profit</div>
+                    {!privacyMode && <div className="col-span-4 md:col-span-2">Profit</div>}
                     <div className="col-span-4 md:col-span-1 text-center">Given</div>
                     <div className="col-span-4 md:col-span-2 text-center">Action</div>
                   </div>
@@ -610,6 +614,7 @@ const OrderManagement = () => {
                         onItemChange={handleItemChange}
                         onRemove={removeItem}
                         disabled={createLoading}
+                        privacyMode={privacyMode}
                       />
                     ))}
                   </div>
@@ -620,6 +625,7 @@ const OrderManagement = () => {
                   orderData={newOrder}
                   orderItems={orderItems}
                   onInputChange={handleInputChange}
+                  privacyMode={privacyMode}
                 />
 
                 {/* Remarks */}
@@ -706,6 +712,7 @@ const OrderManagement = () => {
             orders={orders}
             onViewOrder={(order) => openOrderModal(order, 'view')}
             onEditOrder={(order) => openOrderModal(order, 'edit')}
+            privacyMode={privacyMode}
           />
         </div>
       </div>

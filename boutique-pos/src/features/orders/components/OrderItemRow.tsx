@@ -7,6 +7,7 @@ interface OrderItemRowProps {
   onItemChange: (index: number, field: keyof OrderItem, value: string | number | boolean) => void;
   onRemove: (index: number) => void;
   disabled: boolean;
+  privacyMode?: boolean;
 }
 
 const OrderItemRow: React.FC<OrderItemRowProps> = ({
@@ -15,10 +16,11 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
   onItemChange,
   onRemove,
   disabled,
+  privacyMode = false,
 }) => {
   return (
     <div className="p-3 bg-white rounded-lg border border-boutique-accent/20">
-      <div className="grid grid-cols-12 gap-2 items-center">
+      <div className={`grid ${privacyMode ? 'grid-cols-10' : 'grid-cols-12'} gap-2 items-center`}>
         {/* Item ID Input */}
         <div className="col-span-12 md:col-span-2">
           <input
@@ -41,16 +43,18 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
         </div>
 
         {/* Cost Price - Read Only */}
-        <div className="col-span-3 md:col-span-1">
-          <input
-            type="number"
-            placeholder="Cost"
-            className="input input-sm input-bordered w-full bg-gray-50 text-boutique-dark border border-boutique-accent/40 text-xs"
-            value={item.costPrice || ''}
-            readOnly
-            tabIndex={-1}
-          />
-        </div>
+        {!privacyMode && (
+          <div className="col-span-3 md:col-span-1">
+            <input
+              type="number"
+              placeholder="Cost"
+              className="input input-sm input-bordered w-full bg-gray-50 text-boutique-dark border border-boutique-accent/40 text-xs"
+              value={item.costPrice || ''}
+              readOnly
+              tabIndex={-1}
+            />
+          </div>
+        )}
 
         {/* Marked Price - Read Only */}
         <div className="col-span-3 md:col-span-1">
@@ -91,22 +95,24 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
         </div>
 
         {/* Profit - Read Only */}
-        <div className="col-span-4 md:col-span-2">
-          <input
-            type="number"
-            placeholder="Profit"
-            className={`input input-sm input-bordered w-full text-boutique-dark border border-boutique-accent/40 cursor-not-allowed ${
-              item.sellingPrice > 0 && item.sellingPrice - item.costPrice >= 0
-                ? 'bg-green-50 text-green-700'
-                : item.sellingPrice > 0
-                  ? 'bg-red-50 text-red-700'
-                  : 'bg-gray-50'
-            }`}
-            value={item.sellingPrice > 0 ? item.sellingPrice - item.costPrice : ''}
-            readOnly
-            tabIndex={-1}
-          />
-        </div>
+        {!privacyMode && (
+          <div className="col-span-4 md:col-span-2">
+            <input
+              type="number"
+              placeholder="Profit"
+              className={`input input-sm input-bordered w-full text-boutique-dark border border-boutique-accent/40 cursor-not-allowed ${
+                item.sellingPrice > 0 && item.sellingPrice - item.costPrice >= 0
+                  ? 'bg-green-50 text-green-700'
+                  : item.sellingPrice > 0
+                    ? 'bg-red-50 text-red-700'
+                    : 'bg-gray-50'
+              }`}
+              value={item.sellingPrice > 0 ? item.sellingPrice - item.costPrice : ''}
+              readOnly
+              tabIndex={-1}
+            />
+          </div>
+        )}
 
         {/* Given Status - Toggle Button */}
         <div className="col-span-4 md:col-span-1 flex items-center justify-center">

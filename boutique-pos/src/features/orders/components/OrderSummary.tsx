@@ -7,9 +7,15 @@ interface OrderSummaryProps {
   onInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => void;
+  privacyMode?: boolean;
 }
 
-const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, orderItems, onInputChange }) => {
+const OrderSummary: React.FC<OrderSummaryProps> = ({
+  orderData,
+  orderItems,
+  onInputChange,
+  privacyMode = false,
+}) => {
   const validItemsCount = orderItems.filter((i) => i.itemExists).length;
   const amountDue = orderData.totalAmount - orderData.amountPaid;
 
@@ -18,7 +24,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, orderItems, onIn
       <h4 className="font-semibold text-boutique-primary mb-3">Order Summary</h4>
 
       {/* Totals Section */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+      <div
+        className={`grid grid-cols-1 ${privacyMode ? 'md:grid-cols-3' : 'md:grid-cols-4'} gap-4 mb-4`}
+      >
         <div>
           <label className="label">
             <span className="label-text font-semibold text-boutique-dark">Total Amount</span>
@@ -32,24 +40,26 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ orderData, orderItems, onIn
           />
         </div>
 
-        <div>
-          <label className="label">
-            <span className="label-text font-semibold text-boutique-dark">Total Profit</span>
-          </label>
-          <input
-            type="number"
-            className={`input input-bordered w-full font-bold border-2 border-boutique-accent/40 cursor-not-allowed ${
-              orderData.totalProfit > 0
-                ? 'bg-green-50 text-green-700'
-                : orderData.totalProfit < 0
-                  ? 'bg-red-50 text-red-700'
-                  : 'bg-gray-100 text-boutique-primary'
-            }`}
-            value={orderData.totalProfit !== 0 ? orderData.totalProfit : ''}
-            readOnly
-            tabIndex={-1}
-          />
-        </div>
+        {!privacyMode && (
+          <div>
+            <label className="label">
+              <span className="label-text font-semibold text-boutique-dark">Total Profit</span>
+            </label>
+            <input
+              type="number"
+              className={`input input-bordered w-full font-bold border-2 border-boutique-accent/40 cursor-not-allowed ${
+                orderData.totalProfit > 0
+                  ? 'bg-green-50 text-green-700'
+                  : orderData.totalProfit < 0
+                    ? 'bg-red-50 text-red-700'
+                    : 'bg-gray-100 text-boutique-primary'
+              }`}
+              value={orderData.totalProfit !== 0 ? orderData.totalProfit : ''}
+              readOnly
+              tabIndex={-1}
+            />
+          </div>
+        )}
 
         <div>
           <label className="label">
