@@ -12,6 +12,7 @@ interface OrderItem {
   sellingPrice: number;
   itemExists: boolean;
   isValidating: boolean; // Loading state for validation
+  given: boolean; // Whether item is given to customer
 }
 
 const OrderManagement = () => {
@@ -48,6 +49,7 @@ const OrderManagement = () => {
       sellingPrice: 0,
       itemExists: false,
       isValidating: false,
+      given: true, // Default to true (item given immediately)
     },
   ]);
 
@@ -176,7 +178,7 @@ const OrderManagement = () => {
   );
 
   const handleItemChange = useCallback(
-    (index: number, field: keyof OrderItem, value: string | number) => {
+    (index: number, field: keyof OrderItem, value: string | number | boolean) => {
       setOrderItems((prevItems) => {
         const updatedItems = [...prevItems];
         const currentItem = updatedItems[index];
@@ -260,6 +262,7 @@ const OrderManagement = () => {
         sellingPrice: 0,
         itemExists: false,
         isValidating: false,
+        given: true,
       },
     ]);
   };
@@ -289,6 +292,7 @@ const OrderManagement = () => {
         sellingPrice: 0,
         itemExists: false,
         isValidating: false,
+        given: true,
       },
     ]);
     setCustomerExists(false);
@@ -396,9 +400,10 @@ const OrderManagement = () => {
         })
       );
 
-      // Only store item IDs in the order
+      // Store item IDs with given status in the order
       const itemsToStore = validItems.map((item) => ({
         itemId: item.itemId,
+        given: item.given,
       }));
       const itemsJson = JSON.stringify(itemsToStore);
 
@@ -666,12 +671,13 @@ const OrderManagement = () => {
                 {/* Column Headers */}
                 <div className="grid grid-cols-12 gap-2 px-3 mb-2 text-xs font-semibold text-boutique-dark/70">
                   <div className="col-span-12 md:col-span-2">Item ID</div>
-                  <div className="col-span-4 md:col-span-1">Cost</div>
-                  <div className="col-span-4 md:col-span-1">Marked</div>
-                  <div className="col-span-4 md:col-span-2">Discount</div>
-                  <div className="col-span-6 md:col-span-2">Selling Price</div>
-                  <div className="col-span-6 md:col-span-2">Profit</div>
-                  <div className="col-span-12 md:col-span-2 text-center">Action</div>
+                  <div className="col-span-3 md:col-span-1">Cost</div>
+                  <div className="col-span-3 md:col-span-1">Marked</div>
+                  <div className="col-span-3 md:col-span-1">Discount</div>
+                  <div className="col-span-3 md:col-span-2">Selling Price</div>
+                  <div className="col-span-4 md:col-span-2">Profit</div>
+                  <div className="col-span-4 md:col-span-1 text-center">Given</div>
+                  <div className="col-span-4 md:col-span-2 text-center">Action</div>
                 </div>
 
                 <div className="space-y-2">
@@ -704,7 +710,7 @@ const OrderManagement = () => {
                         </div>
 
                         {/* Cost Price - Read Only */}
-                        <div className="col-span-4 md:col-span-1">
+                        <div className="col-span-3 md:col-span-1">
                           <input
                             type="number"
                             placeholder="Cost"
@@ -715,7 +721,7 @@ const OrderManagement = () => {
                         </div>
 
                         {/* Marked Price - Read Only */}
-                        <div className="col-span-4 md:col-span-1">
+                        <div className="col-span-3 md:col-span-1">
                           <input
                             type="number"
                             placeholder="Marked"
@@ -726,7 +732,7 @@ const OrderManagement = () => {
                         </div>
 
                         {/* Discount - Editable */}
-                        <div className="col-span-4 md:col-span-2">
+                        <div className="col-span-3 md:col-span-1">
                           <input
                             type="number"
                             placeholder="Discount"
@@ -742,7 +748,7 @@ const OrderManagement = () => {
                         </div>
 
                         {/* Selling Price - Editable */}
-                        <div className="col-span-6 md:col-span-2">
+                        <div className="col-span-3 md:col-span-2">
                           <input
                             type="number"
                             placeholder="Selling Price*"
@@ -758,7 +764,7 @@ const OrderManagement = () => {
                         </div>
 
                         {/* Profit - Read Only */}
-                        <div className="col-span-6 md:col-span-2">
+                        <div className="col-span-4 md:col-span-2">
                           <input
                             type="number"
                             placeholder="Profit"
@@ -775,8 +781,59 @@ const OrderManagement = () => {
                           />
                         </div>
 
+                        {/* Given Status - Toggle Button */}
+                        <div className="col-span-4 md:col-span-1 flex items-center justify-center">
+                          <button
+                            type="button"
+                            className={`btn btn-xs gap-1 transition-all ${
+                              item.given
+                                ? 'bg-green-100 hover:bg-green-200 text-green-700 border-green-300'
+                                : 'bg-amber-100 hover:bg-amber-200 text-amber-700 border-amber-300'
+                            }`}
+                            onClick={() => handleItemChange(index, 'given', !item.given)}
+                            disabled={!item.itemExists}
+                            title={
+                              item.given ? 'Item given to customer' : 'Item pending (alterations)'
+                            }
+                          >
+                            {item.given ? (
+                              <>
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-3 w-3"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                <span className="hidden md:inline">Given</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-3 w-3"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                                <span className="hidden md:inline">Pending</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
                         {/* Remove Button */}
-                        <div className="col-span-12 md:col-span-2 flex items-center justify-center">
+                        <div className="col-span-4 md:col-span-2 flex items-center justify-center">
                           {orderItems.length > 1 && (
                             <button
                               type="button"
@@ -1117,12 +1174,20 @@ const OrderManagement = () => {
                                 <span className="font-semibold text-boutique-primary">
                                   {parsedItems.length} {parsedItems.length === 1 ? 'item' : 'items'}
                                 </span>
-                                <div className="text-boutique-dark/60 mt-1">
-                                  {parsedItems.map((item, idx) => (
-                                    <span key={idx} className="inline-block mr-1">
-                                      {item.itemId}
-                                      {idx < parsedItems.length - 1 ? ',' : ''}
-                                    </span>
+                                <div className="text-boutique-dark/60 mt-1 space-y-1">
+                                  {parsedItems.map((item: any, idx) => (
+                                    <div key={idx} className="flex items-center gap-1">
+                                      <span>{item.itemId}</span>
+                                      {item.given !== undefined && (
+                                        <span
+                                          className={`badge badge-xs ${
+                                            item.given ? 'badge-success' : 'badge-warning'
+                                          }`}
+                                        >
+                                          {item.given ? '✓ Given' : '⏳ Pending'}
+                                        </span>
+                                      )}
+                                    </div>
                                   ))}
                                 </div>
                               </>
