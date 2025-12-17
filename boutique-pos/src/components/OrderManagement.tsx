@@ -267,12 +267,18 @@ const OrderManagement = () => {
             ]
           : [];
 
+      // Auto-determine order status based on payment and items
+      const amountDue = newOrder.totalAmount - newOrder.amountPaid;
+      const allItemsGiven = validItems.every((item) => item.given === true);
+      const autoStatus: 'pending' | 'completed' | 'stuck' =
+        amountDue === 0 && allItemsGiven ? 'completed' : 'pending';
+
       const orderData: Omit<Order, '$id' | '$createdAt' | '$updatedAt'> = {
         billNo,
         customerPhone: newOrder.customerPhone,
         customerName: newOrder.customerName,
         items: JSON.stringify(itemsToStore),
-        status: newOrder.status,
+        status: autoStatus,
         remarks: newOrder.remarks.trim() || undefined,
         totalAmount: newOrder.totalAmount,
         totalProfit: newOrder.totalProfit,
