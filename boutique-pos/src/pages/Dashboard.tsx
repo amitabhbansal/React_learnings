@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart,
   Bar,
@@ -18,6 +19,7 @@ import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Order } from '../types';
 import { formatCurrency } from '../utils/currency';
+import { useApp } from '../context/AppContext';
 import {
   calculateDashboardMetrics,
   calculateDailyMetrics,
@@ -31,6 +33,8 @@ import {
 type DashboardMode = 'all-time' | 'daily' | 'monthly';
 
 const Dashboard = () => {
+  const { privacyMode } = useApp();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -44,6 +48,14 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    // Redirect to home if privacy mode is enabled
+    if (privacyMode) {
+      navigate('/');
+      toast.error('Dashboard is not available in Privacy Mode');
+    }
+  }, [privacyMode, navigate]);
 
   useEffect(() => {
     // Recalculate metrics when mode or date changes
