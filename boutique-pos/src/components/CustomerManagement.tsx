@@ -4,6 +4,7 @@ import service from '../appwrite/config';
 import type { Customer, Order } from '../types';
 import { formatCurrency } from '../utils/currency';
 import { formatDate } from '../utils/date';
+import OrderDetailsModal from './OrderDetailsModal';
 
 const CustomerManagement = () => {
   const [phone, setPhone] = useState('');
@@ -14,6 +15,8 @@ const CustomerManagement = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [createError, setCreateError] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [modalMode, setModalMode] = useState<'view' | 'edit'>('view');
 
   // Form state for creating customer
   const [newCustomer, setNewCustomer] = useState({
@@ -576,8 +579,16 @@ const CustomerManagement = () => {
                           )
                           .map((order) => (
                             <tr key={order.$id} className="hover:bg-boutique-accent/10">
-                              <td className="text-center font-bold text-boutique-primary">
-                                #{order.billNo}
+                              <td className="text-center font-bold">
+                                <button
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setModalMode('view');
+                                  }}
+                                  className="text-boutique-primary hover:text-boutique-secondary underline decoration-dotted transition-colors cursor-pointer font-bold"
+                                >
+                                  #{order.billNo}
+                                </button>
                               </td>
                               <td className="text-center">{formatDate(order.saleDate)}</td>
                               <td className="text-center">
@@ -620,6 +631,24 @@ const CustomerManagement = () => {
               </>
             )}
           </>
+        )}
+
+        {/* Order Details Modal */}
+        {selectedOrder && (
+          <OrderDetailsModal
+            order={selectedOrder}
+            mode={modalMode}
+            onClose={() => setSelectedOrder(null)}
+            onUpdate={async () => {
+              setSelectedOrder(null);
+              // Refresh customer orders
+              if (customer) {
+                const orders = await service.getOrdersByCustomer(customer.phone);
+                setCustomerOrders(orders);
+                toast.success('Order updated successfully!');
+              }
+            }}
+          />
         )}
       </div>
     </div>
