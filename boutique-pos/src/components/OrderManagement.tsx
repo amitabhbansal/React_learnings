@@ -759,7 +759,7 @@ const OrderManagement = () => {
                         {/* Discount - Editable */}
                         <div className="col-span-3 md:col-span-1">
                           <input
-                            placeholder="Discount"
+                            placeholder="Disc."
                             className="input input-sm input-bordered w-full bg-white text-boutique-dark border border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
                             value={item.discount || ''}
                             onChange={(e) =>
