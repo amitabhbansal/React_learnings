@@ -217,7 +217,7 @@ const OrderManagement = () => {
           if (trimmedValue) {
             itemDebounceTimers.current[index] = setTimeout(() => {
               validateItemId(index, trimmedValue);
-            }, 800); // Wait 800ms after user stops typing
+            }, 1000); // Wait 1000 after user stops typing
           } else {
             // Clear validation if empty
             updatedItems[index] = {
