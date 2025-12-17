@@ -181,6 +181,20 @@ export class Service {
     }
   }
 
+  async getOrderByBillNo(billNo: number): Promise<Order | null> {
+    try {
+      const res = await this.databases.listDocuments(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.orders,
+        [Query.equal('billNo', billNo)]
+      );
+      return res.documents.length > 0 ? (res.documents[0] as any) : null;
+    } catch (error) {
+      console.error('Error fetching order by bill number:', error);
+      throw error;
+    }
+  }
+
   async updateOrder(
     documentId: string,
     updates: Partial<Omit<Order, '$id' | '$createdAt' | '$updatedAt'>>

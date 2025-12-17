@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Order } from '../types';
+import OrderDetailsModal from './OrderDetailsModal';
 
 // Enhanced item structure for orders
 interface OrderItem {
@@ -26,13 +27,13 @@ const OrderManagement = () => {
   const [createError, setCreateError] = useState('');
   const [nextBillNo, setNextBillNo] = useState<number>(1);
 
-  // Edit order state
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [editLoading, setEditLoading] = useState(false);
-  const [editError, setEditError] = useState('');
-  const [editOrderItems, setEditOrderItems] = useState<OrderItem[]>([]);
-  const [additionalPayment, setAdditionalPayment] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi'>('cash');
+  // Order Details Modal state
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [modalMode, setModalMode] = useState<'view' | 'edit'>('view');
+
+  // Search order state
+  const [searchBillNo, setSearchBillNo] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // Customer validation state
   const [customerExists, setCustomerExists] = useState(false);
@@ -496,109 +497,42 @@ const OrderManagement = () => {
     return badges[status as keyof typeof badges] || badges.pending;
   };
 
-  const openEditModal = (order: Order) => {
-    setEditingOrder(order);
-    setEditError('');
-    setAdditionalPayment(0);
-    setPaymentMethod('cash');
-
-    // Parse items
-    try {
-      const parsedItems = JSON.parse(order.items);
-      setEditOrderItems(parsedItems);
-    } catch (error) {
-      console.error('Error parsing items:', error);
-      setEditOrderItems([]);
+  const searchOrderByBillNo = async () => {
+    const billNo = Number(searchBillNo);
+    if (!billNo || billNo <= 0) {
+      toast.error('Please enter a valid bill number');
+      return;
     }
-  };
 
-  const closeEditModal = () => {
-    setEditingOrder(null);
-    setEditOrderItems([]);
-    setAdditionalPayment(0);
-    setEditError('');
-  };
-
-  const toggleItemGiven = (index: number) => {
-    setEditOrderItems((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], given: !updated[index].given };
-      return updated;
-    });
-  };
-
-  const saveOrderChanges = async () => {
-    if (!editingOrder) return;
-
-    setEditLoading(true);
-    setEditError('');
-
+    setSearchLoading(true);
     try {
-      const updates: any = {};
-
-      // Update items if changed
-      const updatedItemsJson = JSON.stringify(editOrderItems);
-      if (updatedItemsJson !== editingOrder.items) {
-        updates.items = updatedItemsJson;
-      }
-
-      // Calculate new amount paid
-      let newAmountPaid = editingOrder.amountPaid;
-
-      // Add payment if provided
-      if (additionalPayment > 0) {
-        newAmountPaid = editingOrder.amountPaid + additionalPayment;
-        updates.amountPaid = newAmountPaid;
-
-        // Update payment history
-        let paymentHistory = [];
-        try {
-          paymentHistory = JSON.parse(editingOrder.paymentHistory || '[]');
-        } catch (e) {
-          paymentHistory = [];
-        }
-
-        paymentHistory.push({
-          amount: additionalPayment,
-          date: new Date().toISOString(),
-          method: paymentMethod,
-          remarks: 'Additional payment',
-        });
-
-        updates.paymentHistory = JSON.stringify(paymentHistory);
-      }
-
-      // Auto-determine order status based on payment and items
-      const amountDue = editingOrder.totalAmount - newAmountPaid;
-      const allItemsGiven = editOrderItems.every((item) => item.given === true);
-
-      let autoStatus: 'pending' | 'completed' | 'stuck';
-      if (amountDue === 0 && allItemsGiven) {
-        autoStatus = 'completed';
+      const order = await service.getOrderByBillNo(billNo);
+      if (order) {
+        setSelectedOrder(order);
+        setModalMode('view');
+        setSearchBillNo(''); // Clear search
       } else {
-        autoStatus = 'pending';
-      }
-
-      // Update status
-      updates.status = autoStatus;
-
-      // Only update if there are changes
-      if (Object.keys(updates).length > 0) {
-        await service.updateOrder(editingOrder.$id!, updates);
-        toast.success(`Order updated successfully! Status: ${autoStatus}`);
-        closeEditModal();
-        await fetchOrders(); // Refresh the list
-      } else {
-        toast('No changes to save');
-        closeEditModal();
+        toast.error(`Order with Bill No. ${billNo} not found`);
       }
     } catch (error) {
-      console.error('Error updating order:', error);
-      setEditError('Failed to update order. Please try again.');
-      toast.error('Failed to update order');
+      console.error('Error searching order:', error);
+      toast.error('Error searching order. Please try again.');
     } finally {
-      setEditLoading(false);
+      setSearchLoading(false);
     }
+  };
+
+  const openOrderModal = (order: Order, mode: 'view' | 'edit') => {
+    setSelectedOrder(order);
+    setModalMode(mode);
+  };
+
+  const closeOrderModal = () => {
+    setSelectedOrder(null);
+  };
+
+  const handleOrderUpdate = async () => {
+    await fetchOrders();
   };
 
   return (
@@ -1300,6 +1234,56 @@ const OrderManagement = () => {
           </div>
         </div>
 
+        {/* Search Order by Bill No */}
+        <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 p-4 rounded-2xl border-2 border-boutique-secondary/30 shadow-lg mb-6">
+          <h3 className="text-lg font-serif font-semibold mb-3 text-boutique-primary">
+            Search Order by Bill No.
+          </h3>
+          <div className="flex gap-3">
+            <input
+              type="number"
+              placeholder="Enter bill number..."
+              className="input input-bordered flex-1 bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
+              value={searchBillNo}
+              onChange={(e) => setSearchBillNo(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') searchOrderByBillNo();
+              }}
+              disabled={searchLoading}
+            />
+            <button
+              className="btn bg-gradient-to-r from-boutique-secondary to-amber-400 hover:from-amber-400 hover:to-boutique-secondary text-boutique-dark border-none min-w-[120px] shadow-lg"
+              onClick={searchOrderByBillNo}
+              disabled={searchLoading}
+            >
+              {searchLoading ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Searching...
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  Search
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Orders Table */}
         {orders.length > 0 && (
           <div className="w-full bg-gradient-to-br from-purple-50 via-white to-amber-50 rounded-2xl shadow-xl border-2 border-boutique-secondary/30 p-6">
@@ -1369,7 +1353,15 @@ const OrderManagement = () => {
                         className="text-boutique-dark border-b border-boutique-accent/20 hover:bg-purple-50/50 transition-colors"
                       >
                         <td className="font-medium">{index + 1}</td>
-                        <td className="font-bold text-boutique-primary">{order.billNo}</td>
+                        <td>
+                          <button
+                            className="font-bold text-boutique-primary hover:text-purple-700 hover:underline cursor-pointer"
+                            onClick={() => openOrderModal(order, 'view')}
+                            title="Click to view details"
+                          >
+                            {order.billNo}
+                          </button>
+                        </td>
                         <td>
                           <div className="flex flex-col">
                             <span className="font-semibold text-boutique-primary">
@@ -1446,7 +1438,7 @@ const OrderManagement = () => {
                         <td className="text-center">
                           <button
                             className="btn btn-xs bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-300"
-                            onClick={() => openEditModal(order)}
+                            onClick={() => openOrderModal(order, 'edit')}
                             title="Edit Order"
                           >
                             <svg
@@ -1470,251 +1462,14 @@ const OrderManagement = () => {
         )}
       </div>
 
-      {/* Edit Order Modal */}
-      {editingOrder && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-gradient-to-r from-purple-900 via-purple-950 to-purple-900 p-6 border-b-2 border-boutique-secondary">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-serif font-bold text-white">
-                  Edit Order - Bill #{editingOrder.billNo}
-                </h3>
-                <button
-                  className="btn btn-sm btn-circle btn-ghost text-white hover:bg-white/20"
-                  onClick={closeEditModal}
-                  disabled={editLoading}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Customer Info */}
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-boutique-primary mb-2">Customer Details</h4>
-                <p className="text-sm">
-                  <span className="font-semibold">{editingOrder.customerName}</span>
-                  <span className="text-boutique-dark/60 ml-2">({editingOrder.customerPhone})</span>
-                </p>
-                <p className="text-sm text-boutique-dark/60">
-                  Sale Date: {formatDate(editingOrder.saleDate)}
-                </p>
-                <p className="text-sm mt-2">
-                  <span className="font-semibold">Current Status: </span>
-                  <span
-                    className={`${getStatusBadge(editingOrder.status)} badge-sm font-semibold uppercase`}
-                  >
-                    {editingOrder.status}
-                  </span>
-                </p>
-                <p className="text-xs text-boutique-dark/60 mt-2 italic">
-                  * Status auto-updates: Completed when fully paid & all items given, otherwise
-                  Pending
-                </p>
-              </div>
-
-              {/* Items - Toggle Given Status */}
-              <div>
-                <h4 className="font-semibold text-boutique-primary mb-3">Items Status</h4>
-                <div className="space-y-2">
-                  {editOrderItems.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-boutique-accent/30"
-                    >
-                      <span className="font-medium text-boutique-dark">{item.itemId}</span>
-                      <button
-                        type="button"
-                        className={`btn btn-xs gap-1 transition-all ${
-                          item.given
-                            ? 'bg-green-100 hover:bg-green-200 text-green-700 border-green-300'
-                            : 'bg-amber-100 hover:bg-amber-200 text-amber-700 border-amber-300'
-                        }`}
-                        onClick={() => toggleItemGiven(index)}
-                        disabled={editLoading}
-                      >
-                        {item.given ? (
-                          <>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-3 w-3"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Given
-                          </>
-                        ) : (
-                          <>
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-3 w-3"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Pending
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Payment Details */}
-              <div className="bg-amber-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-boutique-primary mb-3">Payment Summary</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm mb-4">
-                  <div>
-                    <p className="text-boutique-dark/60">Total Amount</p>
-                    <p className="font-bold text-boutique-primary">
-                      {formatCurrency(editingOrder.totalAmount)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-boutique-dark/60">Paid</p>
-                    <p className="font-bold text-green-600">
-                      {formatCurrency(editingOrder.amountPaid)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-boutique-dark/60">Due</p>
-                    <p className="font-bold text-red-600">
-                      {formatCurrency(editingOrder.totalAmount - editingOrder.amountPaid)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Add Payment */}
-                {editingOrder.totalAmount - editingOrder.amountPaid > 0 && (
-                  <div className="border-t-2 border-boutique-accent/30 pt-4">
-                    <h5 className="font-semibold text-boutique-dark mb-3">Record Payment</h5>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="label">
-                          <span className="label-text font-semibold text-boutique-dark">
-                            Amount
-                          </span>
-                        </label>
-                        <input
-                          type="number"
-                          className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
-                          value={additionalPayment || ''}
-                          onChange={(e) => setAdditionalPayment(Number(e.target.value) || 0)}
-                          min="0"
-                          max={editingOrder.totalAmount - editingOrder.amountPaid}
-                          disabled={editLoading}
-                          placeholder="Enter amount"
-                        />
-                      </div>
-                      <div>
-                        <label className="label">
-                          <span className="label-text font-semibold text-boutique-dark">
-                            Method
-                          </span>
-                        </label>
-                        <select
-                          className="select select-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
-                          value={paymentMethod}
-                          onChange={(e) => setPaymentMethod(e.target.value as 'cash' | 'upi')}
-                          disabled={editLoading}
-                        >
-                          <option value="cash">Cash</option>
-                          <option value="upi">UPI</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Error Display */}
-              {editError && (
-                <div className="alert alert-error shadow-lg">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <span>{editError}</span>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  className="btn bg-gradient-to-r from-boutique-secondary to-amber-400 hover:from-amber-400 hover:to-boutique-secondary text-boutique-dark border-none gap-2 shadow-lg"
-                  onClick={saveOrderChanges}
-                  disabled={editLoading}
-                >
-                  {editLoading ? (
-                    <>
-                      <span className="loading loading-spinner loading-sm"></span>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      Save Changes
-                    </>
-                  )}
-                </button>
-                <button
-                  className="btn bg-white hover:bg-slate-100 text-boutique-primary border-2 border-boutique-accent/30"
-                  onClick={closeEditModal}
-                  disabled={editLoading}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <OrderDetailsModal
+          order={selectedOrder}
+          mode={modalMode}
+          onClose={closeOrderModal}
+          onUpdate={handleOrderUpdate}
+        />
       )}
     </div>
   );
