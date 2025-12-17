@@ -291,7 +291,9 @@ const OrderManagement = () => {
       await Promise.all(
         validItems.map(async (item) => {
           const itemDoc = await service.getItemById(item.itemId);
-          if (itemDoc?.$id) await service.updateItemSoldStatus(itemDoc.$id, true);
+          if (itemDoc?.$id) {
+            await service.updateItemSoldStatus(itemDoc.$id, true, item.sellingPrice);
+          }
         })
       );
 

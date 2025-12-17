@@ -89,13 +89,19 @@ export class Service {
     }
   }
 
-  async updateItemSoldStatus(documentId: string, sold: boolean) {
+  async updateItemSoldStatus(documentId: string, sold: boolean, sellingPrice?: number) {
     try {
+      const updates: any = { sold };
+
+      if (sellingPrice !== undefined) {
+        updates.defaultSellingPrice = sellingPrice;
+      }
+
       return await this.databases.updateDocument(
         conf.appwrite.databaseId,
         conf.appwrite.collectionIds.items,
         documentId,
-        { sold }
+        updates
       );
     } catch (error) {
       console.error('Error updating item:', error);
