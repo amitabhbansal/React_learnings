@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import service from '../appwrite/config';
-import type { Customer } from '../types';
+import type { Customer, Order } from '../types';
+import { formatCurrency } from '../utils/currency';
+import { formatDate } from '../utils/date';
 
 const CustomerManagement = () => {
   const [phone, setPhone] = useState('');
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
@@ -35,6 +38,7 @@ const CustomerManagement = () => {
   const fetchCustomer = async () => {
     setSearchError('');
     setCustomer(null);
+    setCustomerOrders([]);
     if (!phone.trim() || !/^[6-9]\d{9}$/.test(phone)) {
       setSearchError('Please enter a valid Indian mobile number');
       return;
@@ -42,6 +46,7 @@ const CustomerManagement = () => {
 
     setSearchLoading(true);
     setCustomer(null);
+    setCustomerOrders([]);
     try {
       const c = await service.getCustomerByPhone(phone);
       console.log('Customer fetched:', c);
@@ -55,7 +60,12 @@ const CustomerManagement = () => {
           name: c.name,
         };
         setCustomer(customerData);
-        toast.success('Customer found!');
+
+        // Fetch customer's orders
+        const orders = await service.getOrdersByCustomer(phone);
+        setCustomerOrders(orders);
+
+        toast.success(`Customer found with ${orders.length} order(s)!`);
       }
     } catch (error) {
       console.error('Error fetching customer:', error);
@@ -417,45 +427,199 @@ const CustomerManagement = () => {
 
         {/* Display Customer Details */}
         {customer && (
-          <div className="mt-6 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl border-2 border-boutique-accent/30 shadow-lg">
-            <h3 className="text-lg font-serif font-semibold mb-4 flex items-center gap-2 text-boutique-primary">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-boutique-secondary"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                />
-              </svg>
-              Customer Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold text-boutique-primary">Name</span>
-                </label>
-                <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 font-medium text-boutique-dark shadow-sm">
-                  {customer.name}
+          <>
+            <div className="mt-6 p-6 bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl border-2 border-boutique-accent/30 shadow-lg">
+              <h3 className="text-lg font-serif font-semibold mb-4 flex items-center gap-2 text-boutique-primary">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-boutique-secondary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+                Customer Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-primary">Name</span>
+                  </label>
+                  <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 font-medium text-boutique-dark shadow-sm">
+                    {customer.name}
+                  </div>
                 </div>
-              </div>
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-semibold text-boutique-primary">
-                    Phone Number
-                  </span>
-                </label>
-                <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 font-medium text-boutique-dark shadow-sm">
-                  {customer.phone}
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-primary">
+                      Phone Number
+                    </span>
+                  </label>
+                  <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 font-medium text-boutique-dark shadow-sm">
+                    {customer.phone}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+
+            {/* Financial Summary Dashboard */}
+            {customerOrders.length > 0 && (
+              <>
+                <div className="mt-6">
+                  <h3 className="text-lg font-serif font-semibold mb-4 flex items-center gap-2 text-boutique-primary">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-boutique-secondary"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                      />
+                    </svg>
+                    Financial Summary
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Total Spent */}
+                    <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200 shadow-md">
+                      <div className="text-xs font-semibold text-green-700 mb-1">Total Spent</div>
+                      <div className="text-2xl font-bold text-green-900">
+                        {formatCurrency(
+                          customerOrders.reduce((sum, order) => sum + order.totalAmount, 0)
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Total Dues */}
+                    <div className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border-2 border-orange-200 shadow-md">
+                      <div className="text-xs font-semibold text-orange-700 mb-1">Total Dues</div>
+                      <div className="text-2xl font-bold text-orange-900">
+                        {formatCurrency(
+                          customerOrders.reduce(
+                            (sum, order) => sum + (order.totalAmount - order.amountPaid),
+                            0
+                          )
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Total Orders */}
+                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200 shadow-md">
+                      <div className="text-xs font-semibold text-blue-700 mb-1">Total Orders</div>
+                      <div className="text-2xl font-bold text-blue-900">
+                        {customerOrders.length}
+                      </div>
+                    </div>
+
+                    {/* Average Order Value */}
+                    <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border-2 border-purple-200 shadow-md">
+                      <div className="text-xs font-semibold text-purple-700 mb-1">
+                        Avg Order Value
+                      </div>
+                      <div className="text-2xl font-bold text-purple-900">
+                        {formatCurrency(
+                          customerOrders.reduce((sum, order) => sum + order.totalAmount, 0) /
+                            customerOrders.length
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order History Table */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-serif font-semibold mb-4 flex items-center gap-2 text-boutique-primary">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-boutique-secondary"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Order History
+                  </h3>
+                  <div className="overflow-x-auto bg-white rounded-xl border-2 border-boutique-accent/30 shadow-lg">
+                    <table className="table table-zebra">
+                      <thead className="bg-gradient-to-r from-boutique-primary to-boutique-secondary text-black">
+                        <tr>
+                          <th className="text-center">Bill No.</th>
+                          <th className="text-center">Date</th>
+                          <th className="text-center">Status</th>
+                          <th className="text-center">Total Amount</th>
+                          <th className="text-center">Amount Paid</th>
+                          <th className="text-center">Amount Due</th>
+                          <th className="text-center">Items</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {customerOrders
+                          .sort(
+                            (a, b) =>
+                              new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime()
+                          )
+                          .map((order) => (
+                            <tr key={order.$id} className="hover:bg-boutique-accent/10">
+                              <td className="text-center font-bold text-boutique-primary">
+                                #{order.billNo}
+                              </td>
+                              <td className="text-center">{formatDate(order.saleDate)}</td>
+                              <td className="text-center">
+                                <span
+                                  className={`badge ${
+                                    order.status === 'completed' ? 'badge-success' : 'badge-warning'
+                                  }`}
+                                >
+                                  {order.status}
+                                </span>
+                              </td>
+                              <td className="text-center font-semibold text-green-700">
+                                {formatCurrency(order.totalAmount)}
+                              </td>
+                              <td className="text-center font-semibold text-blue-700">
+                                {formatCurrency(order.amountPaid)}
+                              </td>
+                              <td className="text-center font-semibold">
+                                <span
+                                  className={
+                                    order.totalAmount - order.amountPaid > 0
+                                      ? 'text-orange-600'
+                                      : 'text-gray-500'
+                                  }
+                                >
+                                  {formatCurrency(order.totalAmount - order.amountPaid)}
+                                </span>
+                              </td>
+                              <td className="text-center">
+                                <span className="badge badge-outline badge-info">
+                                  {JSON.parse(order.items).length} items
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
     </div>
