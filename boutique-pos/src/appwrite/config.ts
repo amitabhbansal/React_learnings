@@ -162,6 +162,24 @@ export class Service {
       throw error;
     }
   }
+
+  async getNextBillNumber(): Promise<number> {
+    try {
+      const res = await this.databases.listDocuments(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.orders,
+        [Query.limit(1), Query.orderDesc('billNo')]
+      );
+      if (res.documents.length > 0) {
+        const lastOrder = res.documents[0] as any;
+        return (lastOrder.billNo || 0) + 1;
+      }
+      return 1; // First bill number
+    } catch (error) {
+      console.error('Error fetching next bill number:', error);
+      return 1; // Default to 1 if error
+    }
+  }
 }
 
 const service = new Service();

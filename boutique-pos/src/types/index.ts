@@ -40,6 +40,7 @@ export interface PaymentRecord {
 
 export interface Order {
   $id?: string;
+  billNo: number; // Serial bill number (1, 2, 3...)
   customerPhone: string;
   customerName?: string; // Customer name stored directly in order
   items: string; // JSON stringified array of OrderItem[] or simple string format

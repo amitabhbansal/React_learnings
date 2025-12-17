@@ -24,6 +24,7 @@ const OrderManagement = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [nextBillNo, setNextBillNo] = useState<number>(1);
 
   // Customer validation state
   const [customerExists, setCustomerExists] = useState(false);
@@ -413,6 +414,7 @@ const OrderManagement = () => {
       const paymentHistoryJson = JSON.stringify(paymentHistory);
 
       const orderData: Omit<Order, '$id' | '$createdAt' | '$updatedAt'> = {
+        billNo: nextBillNo,
         customerPhone: newOrder.customerPhone,
         customerName: newOrder.customerName,
         items: itemsJson,
@@ -523,9 +525,13 @@ const OrderManagement = () => {
                 ? 'bg-white/90 text-boutique-primary hover:bg-white border-white/50'
                 : 'bg-gradient-to-r from-boutique-secondary to-amber-400 hover:from-amber-400 hover:to-boutique-secondary text-boutique-dark border-none font-bold'
             }`}
-            onClick={() => {
+            onClick={async () => {
               if (showCreateForm) {
                 resetForm();
+              } else {
+                // Fetch next bill number when opening form
+                const billNo = await service.getNextBillNumber();
+                setNextBillNo(billNo);
               }
               setShowCreateForm(!showCreateForm);
             }}
@@ -633,7 +639,18 @@ const OrderManagement = () => {
               </div>
 
               {/* Order Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="form-control w-full">
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-dark">Bill No.</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered w-full bg-gray-100 text-boutique-primary font-bold border-2 border-boutique-accent/40 cursor-not-allowed"
+                    value={nextBillNo}
+                    readOnly
+                  />
+                </div>
                 <div className="form-control w-full">
                   <label className="label">
                     <span className="label-text font-semibold text-boutique-dark">
@@ -1198,6 +1215,7 @@ const OrderManagement = () => {
                 <thead>
                   <tr className="bg-gradient-to-r from-purple-900 via-purple-950 to-purple-900 text-white border-b-2 border-boutique-secondary">
                     <th className="text-white">#</th>
+                    <th className="text-white">Bill No.</th>
                     <th className="text-white">Customer</th>
                     <th className="text-white">Date</th>
                     <th className="text-white">Status</th>
@@ -1237,6 +1255,7 @@ const OrderManagement = () => {
                         className="text-boutique-dark border-b border-boutique-accent/20 hover:bg-purple-50/50 transition-colors"
                       >
                         <td className="font-medium">{index + 1}</td>
+                        <td className="font-bold text-boutique-primary">{order.billNo}</td>
                         <td>
                           <div className="flex flex-col">
                             <span className="font-semibold text-boutique-primary">
@@ -1277,20 +1296,23 @@ const OrderManagement = () => {
                           <div className="text-xs">
                             {parsedItems.length > 0 ? (
                               <>
-                                <span className="font-semibold text-boutique-primary">
+                                <span className="font-semibold text-boutique-primary mb-1 block">
                                   {parsedItems.length} {parsedItems.length === 1 ? 'item' : 'items'}
                                 </span>
-                                <div className="text-boutique-dark/60 mt-1 space-y-1">
+                                <div className="text-boutique-dark/60 space-y-1">
                                   {parsedItems.map((item: any, idx) => (
-                                    <div key={idx} className="flex items-center gap-1">
-                                      <span>{item.itemId}</span>
+                                    <div
+                                      key={idx}
+                                      className="flex items-center justify-between gap-2"
+                                    >
+                                      <span className="whitespace-nowrap">{item.itemId}</span>
                                       {item.given !== undefined && (
                                         <span
-                                          className={`badge badge-xs ${
+                                          className={`badge badge-xs whitespace-nowrap flex-shrink-0 ${
                                             item.given ? 'badge-success' : 'badge-warning'
                                           }`}
                                         >
-                                          {item.given ? '✓ Given' : '⏳ Pending'}
+                                          {item.given ? '✓' : '⏳'}
                                         </span>
                                       )}
                                     </div>
