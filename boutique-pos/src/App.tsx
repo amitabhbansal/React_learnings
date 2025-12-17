@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
+import Dashboard from './pages/Dashboard';
 import CustomersPage from './pages/CustomersPage';
 import ItemsPage from './pages/ItemsPage';
 import OrdersPage from './pages/OrdersPage';
@@ -41,6 +42,7 @@ function App() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/items" element={<ItemsPage />} />
           <Route path="/orders" element={<OrdersPage />} />
