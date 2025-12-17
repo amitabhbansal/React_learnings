@@ -28,6 +28,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
   });
   const [additionalPayment, setAdditionalPayment] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi'>('cash');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [currentOrder, setCurrentOrder] = useState(order);
 
   const formatCurrency = (amount: number) => {
@@ -104,7 +105,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
 
         paymentHistory.push({
           amount: additionalPayment,
-          date: new Date().toISOString(),
+          date: new Date(paymentDate).toISOString(),
           method: paymentMethod,
           remarks: 'Additional payment',
         });
@@ -134,6 +135,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
         // Update local state
         setCurrentOrder({ ...currentOrder, ...updates });
         setAdditionalPayment(0);
+        setPaymentDate(new Date().toISOString().split('T')[0]);
         setIsEditing(false);
 
         if (onUpdate) onUpdate();
@@ -376,7 +378,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
           {isEditing && amountDue > 0 && (
             <div className="border-t-2 border-boutique-accent/30 pt-4">
               <h5 className="font-semibold text-boutique-dark mb-3">Record New Payment</h5>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="label">
                     <span className="label-text font-semibold text-boutique-dark">Amount</span>
@@ -405,6 +407,19 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
                     <option value="cash">Cash</option>
                     <option value="upi">UPI</option>
                   </select>
+                </div>
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-dark">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    disabled={editLoading}
+                    max={new Date().toISOString().split('T')[0]}
+                  />
                 </div>
               </div>
             </div>

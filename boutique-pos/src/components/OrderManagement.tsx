@@ -1036,7 +1036,7 @@ const OrderManagement = () => {
                         max={newOrder.totalAmount}
                       />
                       <label className="label">
-                        <span className="label-text-alt text-boutique-dark/60">
+                        <span className="label-text-alt text-xs text-boutique-dark/60">
                           Can be partial/advance payment
                         </span>
                       </label>
