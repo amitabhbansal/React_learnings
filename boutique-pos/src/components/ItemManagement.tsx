@@ -118,6 +118,15 @@ const ItemManagement = () => {
 
     setCreateLoading(true);
     try {
+      // Check if item ID already exists
+      const existingItem = await service.getItemById(newItem.itemId.trim());
+      if (existingItem) {
+        setCreateError('Item ID already exists. Please use a different ID.');
+        toast.error('Item ID already exists!');
+        setCreateLoading(false);
+        return;
+      }
+
       const itemData: Omit<Item, '$id' | '$createdAt' | '$updatedAt'> = {
         itemId: newItem.itemId.trim(),
         title: newItem.title.trim() || undefined,
