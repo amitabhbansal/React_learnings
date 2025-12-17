@@ -416,7 +416,7 @@ const OrderManagement = () => {
           ? [
               {
                 amount: newOrder.amountPaid,
-                date: new Date().toISOString(),
+                date: new Date(newOrder.saleDate).toISOString(),
                 method: newOrder.paymentMethod,
                 remarks: 'Initial payment',
               },

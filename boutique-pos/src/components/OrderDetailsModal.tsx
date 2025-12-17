@@ -29,6 +29,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
   const [additionalPayment, setAdditionalPayment] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi'>('cash');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentRemarks, setPaymentRemarks] = useState('');
   const [currentOrder, setCurrentOrder] = useState(order);
 
   const formatCurrency = (amount: number) => {
@@ -107,7 +108,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
           amount: additionalPayment,
           date: new Date(paymentDate).toISOString(),
           method: paymentMethod,
-          remarks: 'Additional payment',
+          remarks: paymentRemarks.trim() || 'Additional payment',
         });
 
         updates.paymentHistory = JSON.stringify(paymentHistory);
@@ -136,6 +137,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
         setCurrentOrder({ ...currentOrder, ...updates });
         setAdditionalPayment(0);
         setPaymentDate(new Date().toISOString().split('T')[0]);
+        setPaymentRemarks('');
         setIsEditing(false);
 
         if (onUpdate) onUpdate();
@@ -378,7 +380,7 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
           {isEditing && amountDue > 0 && (
             <div className="border-t-2 border-boutique-accent/30 pt-4">
               <h5 className="font-semibold text-boutique-dark mb-3">Record New Payment</h5>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="label">
                     <span className="label-text font-semibold text-boutique-dark">Amount</span>
@@ -421,6 +423,20 @@ const OrderDetailsModal = ({ order, mode, onClose, onUpdate }: OrderDetailsModal
                     max={new Date().toISOString().split('T')[0]}
                   />
                 </div>
+              </div>
+              <div>
+                <label className="label">
+                  <span className="label-text font-semibold text-boutique-dark">Remarks</span>
+                  <span className="label-text-alt text-xs text-boutique-dark/60">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                  value={paymentRemarks}
+                  onChange={(e) => setPaymentRemarks(e.target.value)}
+                  disabled={editLoading}
+                  placeholder="Enter payment remarks (default: Additional payment)"
+                />
               </div>
             </div>
           )}
