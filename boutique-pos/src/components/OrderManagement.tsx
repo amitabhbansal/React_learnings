@@ -1169,6 +1169,7 @@ const OrderManagement = () => {
 
         {/* Fetch Orders Section */}
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center bg-gradient-to-r from-purple-50 via-blue-50 to-purple-50 p-4 rounded-2xl border-2 border-boutique-accent/30 shadow-lg mb-6">
+          {/* Left Section: Fetch Orders with Filters */}
           <div className="flex flex-wrap items-center gap-3">
             <button
               className="btn bg-gradient-to-r from-boutique-secondary to-amber-400 hover:from-amber-400 hover:to-boutique-secondary text-boutique-dark border-none min-w-[120px] shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-semibold"
@@ -1232,55 +1233,51 @@ const OrderManagement = () => {
               </label>
             </div>
           </div>
-        </div>
 
-        {/* Search Order by Bill No */}
-        <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 p-4 rounded-2xl border-2 border-boutique-secondary/30 shadow-lg mb-6">
-          <h3 className="text-lg font-serif font-semibold mb-3 text-boutique-primary">
-            Search Order by Bill No.
-          </h3>
-          <div className="flex gap-3">
-            <input
-              type="number"
-              placeholder="Enter bill number..."
-              className="input input-bordered flex-1 bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
-              value={searchBillNo}
-              onChange={(e) => setSearchBillNo(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') searchOrderByBillNo();
-              }}
-              disabled={searchLoading}
-            />
-            <button
-              className="btn bg-gradient-to-r from-boutique-secondary to-amber-400 hover:from-amber-400 hover:to-boutique-secondary text-boutique-dark border-none min-w-[120px] shadow-lg"
-              onClick={searchOrderByBillNo}
-              disabled={searchLoading}
-            >
-              {searchLoading ? (
-                <>
-                  <span className="loading loading-spinner loading-sm"></span>
-                  Searching...
-                </>
-              ) : (
-                <>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  Search
-                </>
-              )}
-            </button>
+          {/* Right Section: Search by Bill No. */}
+          <div className="flex flex-col gap-2 lg:ml-auto w-full lg:w-auto">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <input
+                  placeholder="Search by Bill No..."
+                  className="input input-bordered input-sm lg:input-md w-full lg:w-64 bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
+                  value={searchBillNo}
+                  onChange={(e) => setSearchBillNo(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchOrderByBillNo()}
+                  disabled={createLoading}
+                />
+              </div>
+              <button
+                className="btn bg-gradient-to-r from-boutique-secondary to-amber-400 hover:from-amber-400 hover:to-boutique-secondary text-boutique-dark border-none btn-sm lg:btn-md shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-semibold"
+                onClick={searchOrderByBillNo}
+                disabled={searchLoading || loading || createLoading}
+              >
+                {searchLoading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    <span className="hidden sm:inline">Searching</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                    <span className="hidden sm:inline">Search</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
