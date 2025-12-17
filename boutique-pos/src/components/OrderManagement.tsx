@@ -318,7 +318,9 @@ const OrderManagement = () => {
 
   // Auto-calculate totals whenever orderItems change
   useEffect(() => {
-    const validItems = orderItems.filter((item) => item.itemExists && item.itemId.trim());
+    const validItems = orderItems.filter(
+      (item) => item.itemExists && item.itemId.trim() && item.sellingPrice > 0
+    );
     const totalAmount = validItems.reduce((sum, item) => sum + item.sellingPrice, 0);
     const totalCost = validItems.reduce((sum, item) => sum + item.costPrice, 0);
     const totalProfit = totalAmount - totalCost;
