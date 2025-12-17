@@ -1,5 +1,13 @@
 import type { Order, Item, PaymentRecord } from '../types';
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachMonthOfInterval,
+  subMonths,
+  isSameDay,
+  isWithinInterval,
+} from 'date-fns';
 
 export interface DashboardMetrics {
   // Financial
@@ -269,4 +277,85 @@ export const getTopCustomers = (orders: Order[], topN: number = 5): CustomerData
   return Array.from(customerMap.values())
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, topN);
+};
+
+// Calculate metrics for a specific day
+export const calculateDailyMetrics = (
+  orders: Order[],
+  items: Item[],
+  selectedDate: Date
+): DashboardMetrics => {
+  // Filter orders for the selected day
+  const dayOrders = orders.filter((order) => {
+    try {
+      if (!order.$createdAt) return false;
+      const orderDate = new Date(order.$createdAt);
+      return isSameDay(orderDate, selectedDate);
+    } catch {
+      return false;
+    }
+  });
+
+  // Count unique customers for that day
+  const uniqueCustomers = new Set(dayOrders.map((o) => o.customerPhone)).size;
+
+  // Get item IDs from day's orders to filter relevant items
+  const dayItemIds = new Set<string>();
+  dayOrders.forEach((order) => {
+    try {
+      const orderItems = JSON.parse(order.items);
+      orderItems.forEach((item: any) => dayItemIds.add(item.itemId));
+    } catch {
+      // Skip invalid items
+    }
+  });
+
+  // Filter items that were sold on this day
+  const dayItems = items.filter((item) => dayItemIds.has(item.itemId));
+
+  // Use the main calculation function with filtered data
+  return calculateDashboardMetrics(dayOrders, dayItems, uniqueCustomers);
+};
+
+// Calculate metrics for a specific month
+export const calculateMonthlyMetrics = (
+  orders: Order[],
+  items: Item[],
+  year: number,
+  month: number // 0-indexed (0 = January, 11 = December)
+): DashboardMetrics => {
+  // Get start and end of the month
+  const monthStart = startOfMonth(new Date(year, month));
+  const monthEnd = endOfMonth(new Date(year, month));
+
+  // Filter orders for the selected month
+  const monthOrders = orders.filter((order) => {
+    try {
+      if (!order.$createdAt) return false;
+      const orderDate = new Date(order.$createdAt);
+      return isWithinInterval(orderDate, { start: monthStart, end: monthEnd });
+    } catch {
+      return false;
+    }
+  });
+
+  // Count unique customers for that month
+  const uniqueCustomers = new Set(monthOrders.map((o) => o.customerPhone)).size;
+
+  // Get item IDs from month's orders to filter relevant items
+  const monthItemIds = new Set<string>();
+  monthOrders.forEach((order) => {
+    try {
+      const orderItems = JSON.parse(order.items);
+      orderItems.forEach((item: any) => monthItemIds.add(item.itemId));
+    } catch {
+      // Skip invalid items
+    }
+  });
+
+  // Filter items that were sold in this month
+  const monthItems = items.filter((item) => monthItemIds.has(item.itemId));
+
+  // Use the main calculation function with filtered data
+  return calculateDashboardMetrics(monthOrders, monthItems, uniqueCustomers);
 };
