@@ -8,6 +8,7 @@ const Navbar = () => {
   const { privacyMode, togglePrivacyMode } = useApp();
 
   const isActive = (path: string) => location.pathname === path;
+  const isGroupActive = (paths: string[]) => paths.some((path) => location.pathname === path);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -60,6 +61,7 @@ const Navbar = () => {
         </div>
         <div className="navbar-center hidden lg:flex">
           <ul className="menu menu-horizontal px-1 gap-2">
+            {/* Home */}
             <li>
               <Link
                 to="/"
@@ -86,6 +88,8 @@ const Navbar = () => {
                 Home
               </Link>
             </li>
+
+            {/* Dashboard */}
             {!privacyMode && (
               <li>
                 <Link
@@ -114,6 +118,8 @@ const Navbar = () => {
                 </Link>
               </li>
             )}
+
+            {/* Customers */}
             <li>
               <Link
                 to="/customers"
@@ -140,11 +146,13 @@ const Navbar = () => {
                 Customers
               </Link>
             </li>
-            <li>
-              <Link
-                to="/items"
-                className={`font-semibold transition-all duration-300 rounded-xl ${
-                  isActive('/items')
+
+            {/* Retail Dropdown */}
+            <li className="dropdown">
+              <label
+                tabIndex={0}
+                className={`font-semibold transition-all duration-300 rounded-xl cursor-pointer ${
+                  isGroupActive(['/items', '/orders'])
                     ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
                     : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
                 }`}
@@ -160,17 +168,90 @@ const Navbar = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                   />
                 </svg>
-                Items
-              </Link>
+                Retail
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 ml-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </label>
+              <ul
+                tabIndex={0}
+                className="dropdown-content menu p-2 shadow-xl bg-purple-950 rounded-xl w-52 mt-2 border-2 border-boutique-secondary/30"
+              >
+                <li>
+                  <Link
+                    to="/items"
+                    className={`font-semibold transition-all duration-300 ${
+                      isActive('/items')
+                        ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark'
+                        : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                      />
+                    </svg>
+                    Items
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/orders"
+                    className={`font-semibold transition-all duration-300 ${
+                      isActive('/orders')
+                        ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark'
+                        : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
+                    </svg>
+                    Orders
+                  </Link>
+                </li>
+              </ul>
             </li>
-            <li>
-              <Link
-                to="/orders"
-                className={`font-semibold transition-all duration-300 rounded-xl ${
-                  isActive('/orders')
+
+            {/* Stitching Dropdown */}
+            <li className="dropdown">
+              <label
+                tabIndex={0}
+                className={`font-semibold transition-all duration-300 rounded-xl cursor-pointer ${
+                  isGroupActive(['/stitching', '/fabric-inventory', '/accessory-inventory'])
                     ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
                     : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
                 }`}
@@ -186,11 +267,108 @@ const Navbar = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                    d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"
                   />
                 </svg>
-                Orders
-              </Link>
+                Stitching
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 ml-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </label>
+              <ul
+                tabIndex={0}
+                className="dropdown-content menu p-2 shadow-xl bg-purple-950 rounded-xl w-52 mt-2 border-2 border-boutique-secondary/30"
+              >
+                <li>
+                  <Link
+                    to="/stitching"
+                    className={`font-semibold transition-all duration-300 ${
+                      isActive('/stitching')
+                        ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark'
+                        : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Orders
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/fabric-inventory"
+                    className={`font-semibold transition-all duration-300 ${
+                      isActive('/fabric-inventory')
+                        ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark'
+                        : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7h16M4 7l2-4h12l2 4"
+                      />
+                    </svg>
+                    Fabrics
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/accessory-inventory"
+                    className={`font-semibold transition-all duration-300 ${
+                      isActive('/accessory-inventory')
+                        ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark'
+                        : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                      />
+                    </svg>
+                    Accessories
+                  </Link>
+                </li>
+              </ul>
             </li>
           </ul>
         </div>
@@ -266,6 +444,7 @@ const Navbar = () => {
       {isMobileMenuOpen && (
         <div className="lg:hidden bg-purple-950 border-t-2 border-boutique-secondary/30">
           <ul className="menu menu-vertical p-4 gap-2">
+            {/* Home */}
             <li>
               <Link
                 to="/"
@@ -293,6 +472,8 @@ const Navbar = () => {
                 Home
               </Link>
             </li>
+
+            {/* Dashboard */}
             {!privacyMode && (
               <li>
                 <Link
@@ -322,6 +503,8 @@ const Navbar = () => {
                 </Link>
               </li>
             )}
+
+            {/* Customers */}
             <li>
               <Link
                 to="/customers"
@@ -349,10 +532,31 @@ const Navbar = () => {
                 Customers
               </Link>
             </li>
+
+            {/* Retail Section */}
+            <li className="menu-title text-boutique-secondary font-bold mt-2">
+              <span className="flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                  />
+                </svg>
+                RETAIL
+              </span>
+            </li>
             <li>
               <Link
                 to="/items"
-                className={`font-semibold transition-all duration-300 rounded-xl ${
+                className={`font-semibold transition-all duration-300 rounded-xl pl-8 ${
                   isActive('/items')
                     ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
                     : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
@@ -379,7 +583,7 @@ const Navbar = () => {
             <li>
               <Link
                 to="/orders"
-                className={`font-semibold transition-all duration-300 rounded-xl ${
+                className={`font-semibold transition-all duration-300 rounded-xl pl-8 ${
                   isActive('/orders')
                     ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
                     : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
@@ -401,6 +605,108 @@ const Navbar = () => {
                   />
                 </svg>
                 Orders
+              </Link>
+            </li>
+
+            {/* Stitching Section */}
+            <li className="menu-title text-boutique-secondary font-bold mt-2">
+              <span className="flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"
+                  />
+                </svg>
+                STITCHING
+              </span>
+            </li>
+            <li>
+              <Link
+                to="/stitching"
+                className={`font-semibold transition-all duration-300 rounded-xl pl-8 ${
+                  isActive('/stitching')
+                    ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
+                    : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
+                }`}
+                onClick={closeMobileMenu}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                Orders
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/fabric-inventory"
+                className={`font-semibold transition-all duration-300 rounded-xl pl-8 ${
+                  isActive('/fabric-inventory')
+                    ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
+                    : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
+                }`}
+                onClick={closeMobileMenu}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7h16M4 7l2-4h12l2 4"
+                  />
+                </svg>
+                Fabrics
+              </Link>
+            </li>
+            <li>
+              <Link
+                to="/accessory-inventory"
+                className={`font-semibold transition-all duration-300 rounded-xl pl-8 ${
+                  isActive('/accessory-inventory')
+                    ? 'bg-gradient-to-r from-boutique-secondary to-amber-400 text-boutique-dark shadow-lg'
+                    : 'text-white hover:bg-white/10 hover:text-boutique-secondary'
+                }`}
+                onClick={closeMobileMenu}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                  />
+                </svg>
+                Accessories
               </Link>
             </li>
           </ul>

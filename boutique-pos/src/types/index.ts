@@ -1,6 +1,8 @@
 export interface Customer {
+  $id?: string;
   phone: string;
   name: string;
+  measurements?: string; // JSON string of measurement data
   $createdAt?: string;
   $updatedAt?: string;
 }
@@ -68,3 +70,35 @@ export const parseOrderItems = (itemsString: string): OrderItem[] => {
     return [];
   }
 };
+
+export interface Fabric {
+  $id?: string;
+  fabricId: string;
+  name?: string;
+  color?: string;
+  totalMeters: number;
+  usedMeters?: number;
+  purchaseRate: number;
+  sellingRate: number;
+  supplier?: string;
+  purchaseDate?: string;
+  remarks?: string;
+  $createdAt?: string;
+  $updatedAt?: string;
+}
+
+export interface Accessory {
+  $id?: string;
+  accessoryId: string;
+  type: string; // button, border, lace, zip, etc.
+  description: string;
+  unit: 'piece' | 'meter' | 'set';
+  quantityInStock: number;
+  quantityUsed?: number;
+  purchaseRate: number;
+  sellingRate: number;
+  supplier?: string;
+  remarks?: string;
+  $createdAt?: string;
+  $updatedAt?: string;
+}

@@ -6,9 +6,12 @@ const conf = {
     collectionIds: {
       items: String(import.meta.env.VITE_APPWRITE_COLLECTION_ID_Items),
       orders: String(import.meta.env.VITE_APPWRITE_COLLECTION_ID_ORDERS),
-      customers: String(import.meta.env.VITE_APPWRITE_COLLECTION_ID_CUSTOMERS)
-    }
-  }
+      customers: String(import.meta.env.VITE_APPWRITE_COLLECTION_ID_CUSTOMERS),
+      stitchingOrders: String(import.meta.env.VITE_APPWRITE_COLLECTION_ID_STITCHING_ORDERS),
+      fabricInventory: String(import.meta.env.VITE_APPWRITE_COLLECTION_ID_FABRIC_INVENTORY),
+      accessoryInventory: String(import.meta.env.VITE_APPWRITE_COLLECTION_ID_ACCESSORY_INVENTORY),
+    },
+  },
 };
 
 export default conf;

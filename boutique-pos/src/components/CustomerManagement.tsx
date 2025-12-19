@@ -2,6 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Customer, Order } from '../types';
+import type { Measurement } from '../types/stitching';
 import { formatCurrency } from '../utils/currency';
 import { formatDate } from '../utils/date';
 import OrderDetailsModal from './OrderDetailsModal';
@@ -17,6 +18,11 @@ const CustomerManagement = () => {
   const [createError, setCreateError] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalMode, setModalMode] = useState<'view' | 'edit'>('view');
+
+  // Measurements state
+  const [showMeasurementsForm, setShowMeasurementsForm] = useState(false);
+  const [measurements, setMeasurements] = useState<Measurement | null>(null);
+  const [measurementsLoading, setMeasurementsLoading] = useState(false);
 
   // Form state for creating customer
   const [newCustomer, setNewCustomer] = useState({
@@ -42,6 +48,9 @@ const CustomerManagement = () => {
     setSearchError('');
     setCustomer(null);
     setCustomerOrders([]);
+    setMeasurements(null);
+    setShowMeasurementsForm(false);
+
     if (!phone.trim() || !/^[6-9]\d{9}$/.test(phone)) {
       setSearchError('Please enter a valid Indian mobile number');
       return;
@@ -61,8 +70,18 @@ const CustomerManagement = () => {
         const customerData: Customer = {
           phone: c.phone,
           name: c.name,
+          measurements: c.measurements,
         };
         setCustomer(customerData);
+
+        // Parse measurements if exists
+        if (c.measurements) {
+          try {
+            setMeasurements(JSON.parse(c.measurements));
+          } catch (e) {
+            console.error('Error parsing measurements:', e);
+          }
+        }
 
         // Fetch customer's orders
         const orders = await service.getOrdersByCustomer(phone);
@@ -113,6 +132,57 @@ const CustomerManagement = () => {
       toast.error('Failed to create customer. Please try again.');
     } finally {
       setCreateLoading(false);
+    }
+  };
+
+  const handleMeasurementChange = (field: keyof Measurement, value: string) => {
+    setMeasurements(
+      (prev) =>
+        ({
+          ...prev,
+          [field]: value,
+        }) as Measurement
+    );
+  };
+
+  const saveMeasurements = async () => {
+    if (!customer || !measurements) return;
+
+    setMeasurementsLoading(true);
+    try {
+      // Validation - check if at least one field is filled
+      const hasData = Object.values(measurements).some((val) => val && val.trim() !== '');
+      if (!hasData) {
+        toast.error('Please fill at least one measurement field');
+        return;
+      }
+
+      await service.updateCustomer(customer.phone, {
+        measurements: JSON.stringify(measurements),
+      });
+
+      toast.success('Measurements saved successfully!');
+      setShowMeasurementsForm(false);
+
+      // Update local customer state
+      setCustomer({ ...customer, measurements: JSON.stringify(measurements) });
+    } catch (error) {
+      console.error('Error saving measurements:', error);
+      toast.error('Failed to save measurements. Please try again.');
+    } finally {
+      setMeasurementsLoading(false);
+    }
+  };
+
+  const resetMeasurements = () => {
+    if (customer?.measurements) {
+      try {
+        setMeasurements(JSON.parse(customer.measurements));
+      } catch (e) {
+        setMeasurements(null);
+      }
+    } else {
+      setMeasurements(null);
     }
   };
 
@@ -469,6 +539,384 @@ const CustomerManagement = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Measurements Section */}
+            <div className="mt-6 p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-boutique-secondary/40 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-serif font-semibold flex items-center gap-2 text-boutique-primary">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-boutique-secondary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Body Measurements
+                </h3>
+                {!showMeasurementsForm && (
+                  <button
+                    className="btn btn-sm bg-gradient-to-r from-boutique-secondary to-amber-400 hover:from-amber-400 hover:to-boutique-secondary text-boutique-dark border-none font-semibold gap-2"
+                    onClick={() => {
+                      setShowMeasurementsForm(true);
+                      if (!measurements) {
+                        setMeasurements({
+                          length: '',
+                          waist: '',
+                          chest: '',
+                          hip: '',
+                          upperChest: '',
+                          shoulder: '',
+                          frontNeck: '',
+                          backNeck: '',
+                          armhole: '',
+                          sleeveLength: '',
+                          sleeveCircumference: '',
+                        });
+                      }
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    {measurements ? 'Edit Measurements' : 'Add Measurements'}
+                  </button>
+                )}
+              </div>
+
+              {!showMeasurementsForm && measurements ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {measurements.length && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Length</div>
+                      <div className="font-semibold text-boutique-dark">{measurements.length}"</div>
+                    </div>
+                  )}
+                  {measurements.waist && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Waist</div>
+                      <div className="font-semibold text-boutique-dark">{measurements.waist}"</div>
+                    </div>
+                  )}
+                  {measurements.chest && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Chest</div>
+                      <div className="font-semibold text-boutique-dark">{measurements.chest}"</div>
+                    </div>
+                  )}
+                  {measurements.hip && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Hip</div>
+                      <div className="font-semibold text-boutique-dark">{measurements.hip}"</div>
+                    </div>
+                  )}
+                  {measurements.upperChest && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Upper Chest</div>
+                      <div className="font-semibold text-boutique-dark">
+                        {measurements.upperChest}"
+                      </div>
+                    </div>
+                  )}
+                  {measurements.shoulder && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Shoulder</div>
+                      <div className="font-semibold text-boutique-dark">
+                        {measurements.shoulder}"
+                      </div>
+                    </div>
+                  )}
+                  {measurements.frontNeck && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Front Neck</div>
+                      <div className="font-semibold text-boutique-dark">
+                        {measurements.frontNeck}"
+                      </div>
+                    </div>
+                  )}
+                  {measurements.backNeck && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Back Neck</div>
+                      <div className="font-semibold text-boutique-dark">
+                        {measurements.backNeck}"
+                      </div>
+                    </div>
+                  )}
+                  {measurements.armhole && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Armhole</div>
+                      <div className="font-semibold text-boutique-dark">
+                        {measurements.armhole}"
+                      </div>
+                    </div>
+                  )}
+                  {measurements.sleeveLength && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Sleeve Length</div>
+                      <div className="font-semibold text-boutique-dark">
+                        {measurements.sleeveLength}"
+                      </div>
+                    </div>
+                  )}
+                  {measurements.sleeveCircumference && (
+                    <div className="p-3 bg-white rounded-lg border-2 border-boutique-accent/20 shadow-sm">
+                      <div className="text-xs text-boutique-dark/60 mb-1">Sleeve Circumference</div>
+                      <div className="font-semibold text-boutique-dark">
+                        {measurements.sleeveCircumference}"
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : !showMeasurementsForm ? (
+                <div className="text-center py-8 text-boutique-dark/60">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 mx-auto mb-2 text-boutique-accent/40"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <p>No measurements recorded yet</p>
+                  <p className="text-sm mt-1">
+                    Click "Add Measurements" to record body measurements
+                  </p>
+                </div>
+              ) : null}
+
+              {showMeasurementsForm && measurements && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Length (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 42"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.length}
+                        onChange={(e) => handleMeasurementChange('length', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Waist (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 34"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.waist}
+                        onChange={(e) => handleMeasurementChange('waist', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Chest (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 38"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.chest}
+                        onChange={(e) => handleMeasurementChange('chest', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Hip (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 40"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.hip}
+                        onChange={(e) => handleMeasurementChange('hip', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Upper Chest (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 36"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.upperChest}
+                        onChange={(e) => handleMeasurementChange('upperChest', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Shoulder (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 16"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.shoulder}
+                        onChange={(e) => handleMeasurementChange('shoulder', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Front Neck (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 8"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.frontNeck}
+                        onChange={(e) => handleMeasurementChange('frontNeck', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Back Neck (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 7"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.backNeck}
+                        onChange={(e) => handleMeasurementChange('backNeck', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Armhole (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 18"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.armhole}
+                        onChange={(e) => handleMeasurementChange('armhole', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Sleeve Length (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 22"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.sleeveLength}
+                        onChange={(e) => handleMeasurementChange('sleeveLength', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label">
+                        <span className="label-text font-semibold text-boutique-dark">
+                          Sleeve Circumference (inches)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., 14"
+                        className="input input-bordered bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none"
+                        value={measurements.sleeveCircumference}
+                        onChange={(e) =>
+                          handleMeasurementChange('sleeveCircumference', e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      className="btn btn-success gap-2"
+                      onClick={saveMeasurements}
+                      disabled={measurementsLoading}
+                    >
+                      {measurementsLoading ? (
+                        <>
+                          <span className="loading loading-spinner loading-sm"></span>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          Save Measurements
+                        </>
+                      )}
+                    </button>
+                    <button
+                      className="btn btn-ghost gap-2"
+                      onClick={() => {
+                        resetMeasurements();
+                        setShowMeasurementsForm(false);
+                      }}
+                      disabled={measurementsLoading}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Financial Summary Dashboard */}

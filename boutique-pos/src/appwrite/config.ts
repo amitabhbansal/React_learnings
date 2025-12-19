@@ -217,6 +217,223 @@ export class Service {
       throw error;
     }
   }
+
+  // Stitching Orders operations
+  async getStitchingOrders(): Promise<any[]> {
+    try {
+      const res = await this.databases.listDocuments(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.stitchingOrders,
+        [Query.orderDesc('$createdAt'), Query.limit(100)]
+      );
+      return res.documents;
+    } catch (error) {
+      console.error('Error fetching stitching orders:', error);
+      throw error;
+    }
+  }
+
+  async getStitchingOrderById(id: string): Promise<any> {
+    try {
+      return await this.databases.getDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.stitchingOrders,
+        id
+      );
+    } catch (error) {
+      console.error('Error fetching stitching order:', error);
+      throw error;
+    }
+  }
+
+  async createStitchingOrder(order: any) {
+    try {
+      return await this.databases.createDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.stitchingOrders,
+        ID.unique(),
+        order
+      );
+    } catch (error) {
+      console.error('Error creating stitching order:', error);
+      throw error;
+    }
+  }
+
+  async updateStitchingOrder(documentId: string, updates: any) {
+    try {
+      return await this.databases.updateDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.stitchingOrders,
+        documentId,
+        updates
+      );
+    } catch (error) {
+      console.error('Error updating stitching order:', error);
+      throw error;
+    }
+  }
+
+  // Fabric Inventory operations
+  async getFabricInventory(): Promise<any[]> {
+    try {
+      const res = await this.databases.listDocuments(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.fabricInventory,
+        [Query.orderDesc('$createdAt'), Query.limit(100)]
+      );
+      return res.documents;
+    } catch (error) {
+      console.error('Error fetching fabric inventory:', error);
+      throw error;
+    }
+  }
+
+  async getFabrics(): Promise<any[]> {
+    return this.getFabricInventory();
+  }
+
+  async getFabricById(fabricId: string): Promise<any | null> {
+    try {
+      const res = await this.databases.listDocuments(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.fabricInventory,
+        [Query.equal('fabricId', fabricId)]
+      );
+      return res?.documents?.length ? res.documents[0] : null;
+    } catch (error) {
+      console.error('Error fetching fabric by ID:', error);
+      throw error;
+    }
+  }
+
+  async createFabric(fabric: any) {
+    try {
+      return await this.databases.createDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.fabricInventory,
+        ID.unique(),
+        fabric
+      );
+    } catch (error) {
+      console.error('Error creating fabric:', error);
+      throw error;
+    }
+  }
+
+  async updateFabric(documentId: string, updates: any) {
+    try {
+      return await this.databases.updateDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.fabricInventory,
+        documentId,
+        updates
+      );
+    } catch (error) {
+      console.error('Error updating fabric:', error);
+      throw error;
+    }
+  }
+
+  // Accessory Inventory operations
+  async getAccessoryInventory(): Promise<any[]> {
+    try {
+      const res = await this.databases.listDocuments(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.accessoryInventory,
+        [Query.orderDesc('$createdAt'), Query.limit(100)]
+      );
+      return res.documents;
+    } catch (error) {
+      console.error('Error fetching accessory inventory:', error);
+      throw error;
+    }
+  }
+
+  async getAccessories(): Promise<any[]> {
+    return this.getAccessoryInventory();
+  }
+
+  async getAccessoryById(accessoryId: string): Promise<any | null> {
+    try {
+      const res = await this.databases.listDocuments(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.accessoryInventory,
+        [Query.equal('accessoryId', accessoryId)]
+      );
+      return res?.documents?.length ? res.documents[0] : null;
+    } catch (error) {
+      console.error('Error fetching accessory by ID:', error);
+      throw error;
+    }
+  }
+
+  async createAccessory(accessory: any) {
+    try {
+      return await this.databases.createDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.accessoryInventory,
+        ID.unique(),
+        accessory
+      );
+    } catch (error) {
+      console.error('Error creating accessory:', error);
+      throw error;
+    }
+  }
+
+  async updateAccessory(documentId: string, updates: any) {
+    try {
+      return await this.databases.updateDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.accessoryInventory,
+        documentId,
+        updates
+      );
+    } catch (error) {
+      console.error('Error updating accessory:', error);
+      throw error;
+    }
+  }
+
+  // Update customer with measurements
+  async updateCustomer(documentId: string, updates: any) {
+    try {
+      return await this.databases.updateDocument(
+        conf.appwrite.databaseId,
+        conf.appwrite.collectionIds.customers,
+        documentId,
+        updates
+      );
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      throw error;
+    }
+  }
+
+  // Update or create customer measurements
+  async updateCustomerMeasurements(phone: string, name: string, measurements: string) {
+    try {
+      const existingCustomer = await this.getCustomerByPhone(phone);
+
+      if (existingCustomer && existingCustomer.$id) {
+        // Update existing customer
+        return await this.updateCustomer(existingCustomer.$id, {
+          measurements,
+        });
+      } else {
+        // Create new customer with measurements
+        return await this.createCustomer({
+          phone,
+          name,
+          measurements,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating customer measurements:', error);
+      throw error;
+    }
+  }
 }
 
 const service = new Service();
