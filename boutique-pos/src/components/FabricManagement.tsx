@@ -166,6 +166,7 @@ const FabricManagement = () => {
         <FabricDetailsModal
           fabric={selectedFabric}
           onClose={() => setSelectedFabric(null)}
+          onUpdate={fetchAllFabrics}
         />
       )}
       <div className="bg-gradient-to-br from-purple-50 via-white to-amber-50 rounded-3xl shadow-2xl border-2 border-boutique-secondary/30 overflow-hidden">

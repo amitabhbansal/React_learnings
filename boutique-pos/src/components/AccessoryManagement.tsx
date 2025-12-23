@@ -170,6 +170,7 @@ const AccessoryManagement = () => {
         <AccessoryDetailsModal
           accessory={selectedAccessory}
           onClose={() => setSelectedAccessory(null)}
+          onUpdate={fetchAllAccessories}
         />
       )}
       <div className="bg-gradient-to-br from-purple-50 via-white to-amber-50 rounded-3xl shadow-2xl border-2 border-boutique-secondary/30 overflow-hidden">

@@ -71,6 +71,15 @@ export const parseOrderItems = (itemsString: string): OrderItem[] => {
   }
 };
 
+export interface StockAdjustment {
+  date: string;
+  type: 'add' | 'reduce';
+  quantity: number;
+  reason: 'sold' | 'damaged' | 'lost' | 'return' | 'correction' | 'other';
+  amount?: number; // Amount if sold
+  notes?: string;
+}
+
 export interface Fabric {
   $id?: string;
   fabricId: string;
@@ -83,6 +92,7 @@ export interface Fabric {
   supplier?: string;
   purchaseDate?: string;
   remarks?: string;
+  adjustmentHistory?: string; // JSON string of StockAdjustment[]
   $createdAt?: string;
   $updatedAt?: string;
 }
@@ -99,6 +109,7 @@ export interface Accessory {
   sellingRate: number;
   supplier?: string;
   remarks?: string;
+  adjustmentHistory?: string; // JSON string of StockAdjustment[]
   $createdAt?: string;
   $updatedAt?: string;
 }

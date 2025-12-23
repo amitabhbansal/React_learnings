@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Accessory } from '../types';
+import type { Accessory, StockAdjustment } from '../types';
 import type { StitchingOrder } from '../types/stitching';
 import service from '../appwrite/config';
 import { formatCurrency } from '../utils/currency';
@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 interface AccessoryDetailsModalProps {
   accessory: Accessory;
   onClose: () => void;
+  onUpdate?: () => void;
 }
 
 interface AccessoryUsage {
@@ -21,10 +22,30 @@ interface AccessoryUsage {
   billedToCustomer: boolean;
 }
 
-const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProps) => {
+const AccessoryDetailsModal = ({ accessory, onClose, onUpdate }: AccessoryDetailsModalProps) => {
   const { privacyMode } = useApp();
   const [loading, setLoading] = useState(false);
   const [usageHistory, setUsageHistory] = useState<AccessoryUsage[]>([]);
+  const [currentAccessory, setCurrentAccessory] = useState(accessory);
+  const [showAdjustForm, setShowAdjustForm] = useState(false);
+  const [adjustLoading, setAdjustLoading] = useState(false);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
+  
+  // Adjustment form state
+  const [adjustmentType, setAdjustmentType] = useState<'add' | 'reduce'>('reduce');
+  const [adjustmentQuantity, setAdjustmentQuantity] = useState(0);
+  const [adjustmentReason, setAdjustmentReason] = useState<'sold' | 'damaged' | 'lost' | 'return' | 'correction' | 'other'>('sold');
+  const [adjustmentAmount, setAdjustmentAmount] = useState(0);
+  const [adjustmentNotes, setAdjustmentNotes] = useState('');
+  const [adjustmentDate, setAdjustmentDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const adjustmentHistory: StockAdjustment[] = (() => {
+    try {
+      return JSON.parse(currentAccessory.adjustmentHistory || '[]');
+    } catch (error) {
+      return [];
+    }
+  })();
 
   useEffect(() => {
     fetchUsageHistory();
@@ -35,9 +56,9 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
     try {
       // Fetch all stitching orders
       const orders = await service.getStitchingOrders();
-      
+
       const usages: AccessoryUsage[] = [];
-      
+
       // Parse each order's items and check for accessory usage
       orders.forEach((order: StitchingOrder) => {
         try {
@@ -62,10 +83,10 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
           console.error('Error parsing order items:', error);
         }
       });
-      
+
       // Sort by date (most recent first)
       usages.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime());
-      
+
       setUsageHistory(usages);
     } catch (error) {
       console.error('Error fetching usage history:', error);
@@ -75,10 +96,128 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
     }
   };
 
-  const availableStock = accessory.quantityInStock - (accessory.quantityUsed || 0);
-  const usagePercentage = accessory.quantityInStock > 0 
-    ? ((accessory.quantityUsed || 0) / accessory.quantityInStock) * 100 
-    : 0;
+  const handleAdjustStock = async () => {
+    if (adjustmentQuantity <= 0) {
+      toast.error('Please enter a valid quantity');
+      return;
+    }
+
+    // Calculate current used quantity from orders
+    const currentUsed = usageHistory.reduce((sum, usage) => sum + usage.quantityUsed, 0);
+    const currentAvailable = currentAccessory.quantityInStock - currentUsed;
+    
+    if (adjustmentType === 'reduce' && adjustmentQuantity > currentAvailable) {
+      toast.error('Cannot reduce more than available stock');
+      return;
+    }
+
+    setAdjustLoading(true);
+    try {
+      const newAdjustment: StockAdjustment = {
+        date: new Date(adjustmentDate).toISOString(),
+        type: adjustmentType,
+        quantity: adjustmentQuantity,
+        reason: adjustmentReason,
+        amount: adjustmentReason === 'sold' ? adjustmentAmount : undefined,
+        notes: adjustmentNotes.trim() || undefined,
+      };
+
+      const updatedHistory = [...adjustmentHistory, newAdjustment];
+      
+      // Only 'add' type increases quantityInStock (new purchases)
+      // 'reduce' type is just tracked in adjustments and counted as 'used'
+      let newQuantityInStock = currentAccessory.quantityInStock;
+      if (adjustmentType === 'add') {
+        newQuantityInStock += adjustmentQuantity;
+      }
+
+      const updates = {
+        quantityInStock: newQuantityInStock,
+        adjustmentHistory: JSON.stringify(updatedHistory),
+      };
+
+      await service.updateAccessory(currentAccessory.$id!, updates);
+
+      // Update local state with proper numeric conversion
+      const updatedAccessory = {
+        ...currentAccessory,
+        quantityInStock: newQuantityInStock,
+        adjustmentHistory: JSON.stringify(updatedHistory),
+      };
+      setCurrentAccessory(updatedAccessory);
+
+      // Reset form
+      setAdjustmentQuantity(0);
+      setAdjustmentAmount(0);
+      setAdjustmentNotes('');
+      setAdjustmentDate(new Date().toISOString().split('T')[0]);
+      setShowAdjustForm(false);
+
+      toast.success('Stock adjusted successfully!');
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error adjusting stock:', error);
+      toast.error('Failed to adjust stock');
+    } finally {
+      setAdjustLoading(false);
+    }
+  };
+
+  const handleDeleteAdjustment = async (indexToDelete: number) => {
+    setAdjustLoading(true);
+    try {
+      const adjustmentToDelete = adjustmentHistory[indexToDelete];
+      
+      // Rollback the quantity change
+      let newQuantityInStock = currentAccessory.quantityInStock;
+      if (adjustmentToDelete.type === 'add') {
+        // If it was an add, subtract it back
+        newQuantityInStock -= adjustmentToDelete.quantity;
+      }
+      // Note: 'reduce' type doesn't affect quantityInStock, so no rollback needed
+
+      // Remove the adjustment from history
+      const updatedHistory = adjustmentHistory.filter((_, index) => index !== indexToDelete);
+
+      const updates = {
+        quantityInStock: newQuantityInStock,
+        adjustmentHistory: JSON.stringify(updatedHistory),
+      };
+
+      await service.updateAccessory(currentAccessory.$id!, updates);
+
+      const updatedAccessory = {
+        ...currentAccessory,
+        quantityInStock: newQuantityInStock,
+        adjustmentHistory: JSON.stringify(updatedHistory),
+      };
+      setCurrentAccessory(updatedAccessory);
+
+      toast.success('Adjustment deleted and changes rolled back!');
+      setDeleteConfirmIndex(null);
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error deleting adjustment:', error);
+      toast.error('Failed to delete adjustment');
+    } finally {
+      setAdjustLoading(false);
+    }
+  };
+
+  // Calculate total used from actual usage history
+  const totalUsedFromOrders = usageHistory.reduce((sum, usage) => sum + usage.quantityUsed, 0);
+  
+  // Calculate total reduced from adjustments (sold, damaged, lost, etc.)
+  const totalReducedFromAdjustments = adjustmentHistory
+    .filter(adj => adj.type === 'reduce')
+    .reduce((sum, adj) => sum + adj.quantity, 0);
+  
+  const totalUsed = totalUsedFromOrders + totalReducedFromAdjustments;
+  const availableStock = currentAccessory.quantityInStock - totalUsed;
+  const usagePercentage =
+    currentAccessory.quantityInStock > 0
+      ? (totalUsed / currentAccessory.quantityInStock) * 100
+      : 0;
 
   const getUnitLabel = (quantity: number) => {
     if (quantity === 1) {
@@ -97,9 +236,7 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
               <h3 className="text-xl font-serif font-bold text-white">
                 Accessory Details - {accessory.accessoryId}
               </h3>
-              <p className="text-amber-100 text-sm">
-                Complete inventory and usage information
-              </p>
+              <p className="text-amber-100 text-sm">Complete inventory and usage information</p>
             </div>
             <button
               className="btn btn-sm btn-circle btn-ghost text-white hover:bg-white/20"
@@ -131,22 +268,22 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
               <div className="space-y-2 text-sm">
                 <p>
                   <span className="text-boutique-dark/60">Type: </span>
-                  <span className="font-semibold">{accessory.type}</span>
+                  <span className="font-semibold">{currentAccessory.type}</span>
                 </p>
                 <p>
                   <span className="text-boutique-dark/60">Description: </span>
-                  <span className="font-semibold">{accessory.description}</span>
+                  <span className="font-semibold">{currentAccessory.description}</span>
                 </p>
                 <p>
                   <span className="text-boutique-dark/60">Unit: </span>
                   <span className="badge badge-sm bg-boutique-secondary/20 text-boutique-dark border-boutique-secondary/40">
-                    {accessory.unit}
+                    {currentAccessory.unit}
                   </span>
                 </p>
-                {accessory.supplier && (
+                {currentAccessory.supplier && (
                   <p>
                     <span className="text-boutique-dark/60">Supplier: </span>
-                    <span className="font-semibold">{accessory.supplier}</span>
+                    <span className="font-semibold">{currentAccessory.supplier}</span>
                   </p>
                 )}
               </div>
@@ -158,19 +295,20 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
                 <p>
                   <span className="text-boutique-dark/60">Purchase Rate: </span>
                   <span className="font-semibold text-blue-600">
-                    {formatCurrency(accessory.purchaseRate)}/{accessory.unit}
+                    {formatCurrency(currentAccessory.purchaseRate)}/{currentAccessory.unit}
                   </span>
                 </p>
                 <p>
                   <span className="text-boutique-dark/60">Selling Rate: </span>
                   <span className="font-semibold text-green-600">
-                    {formatCurrency(accessory.sellingRate)}/{accessory.unit}
+                    {formatCurrency(currentAccessory.sellingRate)}/{currentAccessory.unit}
                   </span>
                 </p>
                 <p>
                   <span className="text-boutique-dark/60">Profit Margin: </span>
                   <span className="font-semibold text-purple-600">
-                    {formatCurrency(accessory.sellingRate - accessory.purchaseRate)}/{accessory.unit}
+                    {formatCurrency(currentAccessory.sellingRate - currentAccessory.purchaseRate)}/
+                    {currentAccessory.unit}
                   </span>
                 </p>
               </div>
@@ -184,13 +322,16 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
               <div>
                 <p className="text-xs text-boutique-dark/60">Total Stock</p>
                 <p className="text-2xl font-bold text-boutique-primary">
-                  {accessory.quantityInStock} {getUnitLabel(accessory.quantityInStock)}
+                  {currentAccessory.quantityInStock} {getUnitLabel(currentAccessory.quantityInStock)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-boutique-dark/60">Used</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {accessory.quantityUsed || 0} {getUnitLabel(accessory.quantityUsed || 0)}
+                  {totalUsed} {getUnitLabel(totalUsed)}
+                </p>
+                <p className="text-[10px] text-boutique-dark/50">
+                  Orders: {totalUsedFromOrders} | Direct: {totalReducedFromAdjustments}
                 </p>
               </div>
               <div>
@@ -200,7 +341,7 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
                 </p>
               </div>
             </div>
-            
+
             {/* Usage Progress Bar */}
             <div className="w-full">
               <div className="flex justify-between text-xs text-boutique-dark/60 mb-1">
@@ -213,8 +354,8 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
                     usagePercentage < 50
                       ? 'bg-green-500'
                       : usagePercentage < 80
-                      ? 'bg-amber-500'
-                      : 'bg-red-500'
+                        ? 'bg-amber-500'
+                        : 'bg-red-500'
                   }`}
                   style={{ width: `${Math.min(usagePercentage, 100)}%` }}
                 ></div>
@@ -223,10 +364,10 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
           </div>
 
           {/* Remarks */}
-          {accessory.remarks && (
+          {currentAccessory.remarks && (
             <div className="bg-slate-50 p-4 rounded-lg">
               <h4 className="font-semibold text-boutique-primary mb-2">Remarks</h4>
-              <p className="text-sm text-boutique-dark/80">{accessory.remarks}</p>
+              <p className="text-sm text-boutique-dark/80">{currentAccessory.remarks}</p>
             </div>
           )}
 
@@ -249,7 +390,7 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
               </svg>
               Usage History ({usageHistory.length})
             </h4>
-            
+
             {loading ? (
               <div className="flex justify-center py-8">
                 <span className="loading loading-spinner loading-lg text-boutique-secondary"></span>
@@ -270,7 +411,10 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
                   </thead>
                   <tbody>
                     {usageHistory.map((usage, index) => (
-                      <tr key={index} className="border-b border-boutique-accent/20 hover:bg-purple-50/50">
+                      <tr
+                        key={index}
+                        className="border-b border-boutique-accent/20 hover:bg-purple-50/50"
+                      >
                         <td className="font-medium">{index + 1}</td>
                         <td>
                           <span className="badge badge-sm bg-boutique-secondary/20 text-boutique-dark border-boutique-secondary/40">
@@ -305,7 +449,7 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
                         Total Used:
                       </td>
                       <td className="text-right text-red-600 font-bold">
-                        {accessory.quantityUsed || 0} {getUnitLabel(accessory.quantityUsed || 0)}
+                        {totalUsedFromOrders} {getUnitLabel(totalUsedFromOrders)}
                       </td>
                       <td></td>
                     </tr>
@@ -329,13 +473,246 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
                   />
                 </svg>
                 <p className="text-boutique-dark/60">No usage history found</p>
-                <p className="text-sm text-boutique-dark/40">This accessory hasn't been used in any orders yet</p>
+                <p className="text-sm text-boutique-dark/40">
+                  This accessory hasn't been used in any orders yet
+                </p>
               </div>
             )}
           </div>
 
+          {/* Manual Adjustments History */}
+          {adjustmentHistory.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-boutique-primary mb-3 flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-boutique-secondary"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Manual Adjustments ({adjustmentHistory.length})
+              </h4>
+              <div className="overflow-x-auto rounded-xl border-2 border-boutique-accent/30">
+                <table className="table table-sm bg-white">
+                  <thead>
+                    <tr className="bg-amber-100">
+                      <th className="text-boutique-dark">#</th>
+                      <th className="text-boutique-dark">Date</th>
+                      <th className="text-boutique-dark">Type</th>
+                      <th className="text-right text-boutique-dark">Quantity</th>
+                      <th className="text-boutique-dark">Reason</th>
+                      <th className="text-right text-boutique-dark">Amount</th>
+                      <th className="text-boutique-dark">Notes</th>
+                      <th className="text-center text-boutique-dark">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adjustmentHistory.map((adj, index) => (
+                      <tr key={index} className="border-b border-boutique-accent/20 hover:bg-amber-50/50">
+                        <td className="font-medium">{index + 1}</td>
+                        <td className="text-sm">{formatDate(adj.date)}</td>
+                        <td>
+                          <span
+                            className={`badge badge-sm ${
+                              adj.type === 'add'
+                                ? 'bg-green-100 text-green-700 border-green-300'
+                                : 'bg-red-100 text-red-700 border-red-300'
+                            }`}
+                          >
+                            {adj.type === 'add' ? '+' : '-'} {adj.type}
+                          </span>
+                        </td>
+                        <td className={`text-right font-bold ${adj.type === 'add' ? 'text-green-600' : 'text-red-600'}`}>
+                          {adj.type === 'add' ? '+' : '-'}{adj.quantity} {getUnitLabel(adj.quantity)}
+                        </td>
+                        <td>
+                          <span className="badge badge-sm badge-outline uppercase text-xs">
+                            {adj.reason}
+                          </span>
+                        </td>
+                        <td className="text-right text-sm">
+                          {adj.amount ? formatCurrency(adj.amount) : '-'}
+                        </td>
+                        <td className="text-sm text-boutique-dark/60">{adj.notes || '-'}</td>
+                        <td className="text-center">
+                          <button
+                            className="btn btn-xs btn-ghost text-red-600 hover:bg-red-100"
+                            onClick={() => setDeleteConfirmIndex(index)}
+                            disabled={adjustLoading}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Adjustment Form */}
+          {showAdjustForm && (
+            <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-lg border-2 border-orange-300">
+              <h4 className="font-semibold text-boutique-primary mb-3">Adjust Stock</h4>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-dark">Type</span>
+                  </label>
+                  <select
+                    className="select select-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                    value={adjustmentType}
+                    onChange={(e) => setAdjustmentType(e.target.value as 'add' | 'reduce')}
+                    disabled={adjustLoading}
+                  >
+                    <option value="reduce">Reduce Stock</option>
+                    <option value="add">Add Stock</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-dark">Quantity</span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                    value={adjustmentQuantity || ''}
+                    onChange={(e) => setAdjustmentQuantity(Number(e.target.value) || 0)}
+                    min="0"
+                    disabled={adjustLoading}
+                    placeholder={`Enter ${currentAccessory.unit}`}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-dark">Reason</span>
+                  </label>
+                  <select
+                    className="select select-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                    value={adjustmentReason}
+                    onChange={(e) => setAdjustmentReason(e.target.value as any)}
+                    disabled={adjustLoading}
+                  >
+                    <option value="sold">Sold to Customer</option>
+                    <option value="damaged">Damaged</option>
+                    <option value="lost">Lost</option>
+                    <option value="return">Return</option>
+                    <option value="correction">Correction</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-dark">
+                      Amount {adjustmentReason !== 'sold' && '(optional)'}
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                    value={adjustmentAmount || ''}
+                    onChange={(e) => setAdjustmentAmount(Number(e.target.value) || 0)}
+                    min="0"
+                    disabled={adjustLoading}
+                    placeholder="₹0"
+                  />
+                </div>
+                <div>
+                  <label className="label">
+                    <span className="label-text font-semibold text-boutique-dark">Date</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                    value={adjustmentDate}
+                    onChange={(e) => setAdjustmentDate(e.target.value)}
+                    disabled={adjustLoading}
+                    max={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="label">
+                  <span className="label-text font-semibold text-boutique-dark">Notes</span>
+                  <span className="label-text-alt text-xs text-boutique-dark/60">(Optional)</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40"
+                  rows={2}
+                  value={adjustmentNotes}
+                  onChange={(e) => setAdjustmentNotes(e.target.value)}
+                  disabled={adjustLoading}
+                  placeholder="Additional notes..."
+                ></textarea>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => {
+                    setShowAdjustForm(false);
+                    setAdjustmentQuantity(0);
+                    setAdjustmentAmount(0);
+                    setAdjustmentNotes('');
+                  }}
+                  disabled={adjustLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-sm bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white border-none"
+                  onClick={handleAdjustStock}
+                  disabled={adjustLoading}
+                >
+                  {adjustLoading ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Adjustment'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-2 justify-end">
+            {!showAdjustForm && (
+              <button
+                className="btn bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white border-none gap-2"
+                onClick={() => setShowAdjustForm(true)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Adjust Stock
+              </button>
+            )}
             <button
               className="btn bg-white hover:bg-slate-100 text-boutique-primary border-2 border-boutique-accent/30"
               onClick={onClose}
@@ -345,6 +722,71 @@ const AccessoryDetailsModal = ({ accessory, onClose }: AccessoryDetailsModalProp
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmIndex !== null && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-boutique-primary mb-3 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Delete Adjustment?
+            </h3>
+            <div className="mb-4">
+              <p className="text-boutique-dark/80 mb-3">
+                Are you sure you want to delete this adjustment? This will:
+              </p>
+              <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 space-y-2 text-sm">
+                <p className="font-semibold text-boutique-dark">
+                  <span className={`badge badge-sm ${
+                    adjustmentHistory[deleteConfirmIndex].type === 'add'
+                      ? 'bg-green-100 text-green-700 border-green-300'
+                      : 'bg-red-100 text-red-700 border-red-300'
+                  } mr-2`}>
+                    {adjustmentHistory[deleteConfirmIndex].type}
+                  </span>
+                  {adjustmentHistory[deleteConfirmIndex].quantity} {getUnitLabel(adjustmentHistory[deleteConfirmIndex].quantity)}
+                </p>
+                <p className="text-boutique-dark/70">
+                  Reason: <span className="font-medium">{adjustmentHistory[deleteConfirmIndex].reason}</span>
+                </p>
+                <p className="text-boutique-dark/70">
+                  Date: <span className="font-medium">{formatDate(adjustmentHistory[deleteConfirmIndex].date)}</span>
+                </p>
+              </div>
+              <p className="text-red-600 font-semibold mt-3 text-sm">
+                {adjustmentHistory[deleteConfirmIndex].type === 'add' 
+                  ? '✓ Total stock will be reduced'
+                  : '✓ This adjustment will be removed from usage history'}
+              </p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                className="btn btn-sm bg-white hover:bg-slate-100 text-boutique-dark border-2 border-boutique-accent/30"
+                onClick={() => setDeleteConfirmIndex(null)}
+                disabled={adjustLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-sm bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white border-none"
+                onClick={() => handleDeleteAdjustment(deleteConfirmIndex)}
+                disabled={adjustLoading}
+              >
+                {adjustLoading ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs"></span>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
