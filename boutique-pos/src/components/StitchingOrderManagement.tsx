@@ -1098,6 +1098,23 @@ const StitchingOrderManagement = () => {
                         />
                       </div>
 
+                      {/* Piece Given */}
+                      <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <label className="label cursor-pointer gap-3 justify-start">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-primary"
+                            checked={item.pieceGiven}
+                            onChange={(e) =>
+                              updateItem(itemIndex, { pieceGiven: e.target.checked })
+                            }
+                          />
+                          <span className="label-text font-semibold text-boutique-dark">
+                            Piece Given to Customer
+                          </span>
+                        </label>
+                      </div>
+
                       {/* Aster */}
                       <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
                         <label className="label cursor-pointer gap-2 mb-2">
@@ -1114,7 +1131,7 @@ const StitchingOrderManagement = () => {
                           </span>
                         </label>
                         {item.asterRequired && (
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                             <div className="form-control w-full">
                               <label className="label py-1">
                                 <span className="label-text text-sm font-medium text-boutique-dark">
@@ -1151,26 +1168,6 @@ const StitchingOrderManagement = () => {
                                   })
                                 }
                               />
-                            </div>
-                            <div className="form-control w-full">
-                              <label className="label py-1">
-                                <span className="label-text text-sm font-medium text-boutique-dark">
-                                  Piece Given
-                                </span>
-                              </label>
-                              <label className="label cursor-pointer justify-start gap-2 bg-white rounded-lg px-4 py-3 border-2 border-boutique-accent/40">
-                                <input
-                                  type="checkbox"
-                                  className="checkbox checkbox-primary"
-                                  checked={item.pieceGiven}
-                                  onChange={(e) =>
-                                    updateItem(itemIndex, { pieceGiven: e.target.checked })
-                                  }
-                                />
-                                <span className="label-text text-boutique-dark">
-                                  {item.pieceGiven ? 'Yes' : 'No'}
-                                </span>
-                              </label>
                             </div>
                           </div>
                         )}
@@ -1481,7 +1478,7 @@ const StitchingOrderManagement = () => {
                       <input
                         type="number"
                         min="0"
-                        className="input input-bordered"
+                        className="ml-1 input input-bordered"
                         value={formData.amountPaid || ''}
                         onChange={(e) =>
                           setFormData({
@@ -1496,7 +1493,7 @@ const StitchingOrderManagement = () => {
                         <span className="label-text font-semibold">Status</span>
                       </label>
                       <select
-                        className="select select-bordered"
+                        className="ml-1 select select-bordered"
                         value={formData.status}
                         onChange={(e) =>
                           setFormData({
@@ -1519,7 +1516,7 @@ const StitchingOrderManagement = () => {
                       <span className="label-text font-semibold">Tailor Remarks</span>
                     </label>
                     <textarea
-                      className="textarea textarea-bordered h-20"
+                      className="ml-1 textarea textarea-bordered h-20"
                       placeholder="Special instructions..."
                       value={formData.tailorRemarks}
                       onChange={(e) => setFormData({ ...formData, tailorRemarks: e.target.value })}
