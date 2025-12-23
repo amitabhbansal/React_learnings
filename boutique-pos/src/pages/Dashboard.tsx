@@ -18,17 +18,22 @@ import {
 import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Order } from '../types';
+import type { StitchingOrder } from '../types/stitching';
 import { formatCurrency } from '../utils/currency';
 import { useApp } from '../context/AppContext';
 import {
   calculateDashboardMetrics,
   calculateDailyMetrics,
   calculateMonthlyMetrics,
-  getMonthlyData,
-  getDailyData,
-  getTopCustomers,
   type DashboardMetrics,
 } from '../utils/dashboardCalculations';
+import {
+  calculateComprehensiveDashboardMetrics,
+  getCombinedMonthlyData,
+  getCombinedDailyData,
+  getCombinedTopCustomers,
+  type ComprehensiveDashboardMetrics,
+} from '../utils/comprehensiveDashboard';
 
 type DashboardMode = 'all-time' | 'daily' | 'monthly';
 
@@ -37,7 +42,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [stitchingOrders, setStitchingOrders] = useState<StitchingOrder[]>([]);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [comprehensiveMetrics, setComprehensiveMetrics] =
+    useState<ComprehensiveDashboardMetrics | null>(null);
   const [mode, setMode] = useState<DashboardMode>('all-time');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
@@ -89,12 +97,27 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [ordersData, itemsData] = await Promise.all([
-        service.getAllOrders(1000),
-        service.getItems(),
-      ]);
+      const [ordersData, itemsData, stitchingOrdersData, fabricsData, accessoriesData] =
+        await Promise.all([
+          service.getAllOrders(1000),
+          service.getItems(), // Get all items to calculate inventory correctly
+          service.getStitchingOrders(),
+          service.getFabrics(),
+          service.getAccessories(),
+        ]);
 
       setOrders(ordersData);
+      setStitchingOrders(stitchingOrdersData);
+
+      // Calculate comprehensive metrics
+      const comprehensiveCalc = calculateComprehensiveDashboardMetrics(
+        ordersData,
+        stitchingOrdersData,
+        itemsData,
+        fabricsData,
+        accessoriesData
+      );
+      setComprehensiveMetrics(comprehensiveCalc);
 
       if (mode === 'all-time') {
         // Count unique customers from orders
@@ -139,9 +162,9 @@ const Dashboard = () => {
     );
   }
 
-  const monthlyData = getMonthlyData(orders, 6);
-  const dailyData = getDailyData(orders, 30);
-  const topCustomers = getTopCustomers(orders, 5);
+  const monthlyData = getCombinedMonthlyData(orders, stitchingOrders, 6);
+  const dailyData = getCombinedDailyData(orders, stitchingOrders, 30);
+  const topCustomers = getCombinedTopCustomers(orders, stitchingOrders, 5);
 
   // Format date for display and input
   const formatDateForInput = (date: Date) => {
@@ -164,10 +187,23 @@ const Dashboard = () => {
     setMode(e.target.value as DashboardMode);
   };
 
-  const paymentMethodData = [
-    { name: 'Cash', value: metrics.cashTotal, color: '#10b981' },
-    { name: 'UPI', value: metrics.upiTotal, color: '#3b82f6' },
-  ];
+  const paymentMethodData = comprehensiveMetrics
+    ? [
+        {
+          name: 'Cash',
+          value: comprehensiveMetrics.retail.cashTotal + comprehensiveMetrics.stitching.cashTotal,
+          color: '#10b981',
+        },
+        {
+          name: 'UPI',
+          value: comprehensiveMetrics.retail.upiTotal + comprehensiveMetrics.stitching.upiTotal,
+          color: '#3b82f6',
+        },
+      ]
+    : [
+        { name: 'Cash', value: metrics.cashTotal, color: '#10b981' },
+        { name: 'UPI', value: metrics.upiTotal, color: '#3b82f6' },
+      ];
 
   const orderStatusData = [
     { name: 'Completed', value: metrics.completedOrders, color: '#10b981' },
@@ -261,6 +297,362 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Comprehensive Business Overview */}
+      {comprehensiveMetrics && mode === 'all-time' && (
+        <>
+          {/* Total Business Metrics */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-2xl border-2 border-indigo-200 shadow-lg">
+            <h2 className="text-2xl font-bold text-indigo-900 mb-4 flex items-center gap-2">
+              <span>🏢</span> Total Business Overview
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="bg-white p-4 rounded-xl border border-indigo-100">
+                <div className="text-xs text-gray-600 mb-1">Total Revenue</div>
+                <div className="text-xl font-bold text-indigo-900">
+                  {formatCurrency(comprehensiveMetrics.totalRevenue)}
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-green-100">
+                <div className="text-xs text-gray-600 mb-1">Total Profit</div>
+                <div className="text-xl font-bold text-green-900">
+                  {formatCurrency(comprehensiveMetrics.totalProfit)}
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-orange-100">
+                <div className="text-xs text-gray-600 mb-1">Total Dues</div>
+                <div className="text-xl font-bold text-orange-900">
+                  {formatCurrency(comprehensiveMetrics.totalDues)}
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-blue-100">
+                <div className="text-xs text-gray-600 mb-1">Total Orders</div>
+                <div className="text-xl font-bold text-blue-900">
+                  {comprehensiveMetrics.totalOrders}
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-xl border border-pink-100">
+                <div className="text-xs text-gray-600 mb-1">Total Customers</div>
+                <div className="text-xl font-bold text-pink-900">
+                  {comprehensiveMetrics.totalCustomers}
+                </div>
+              </div>
+            </div>
+
+            {comprehensiveMetrics.highestValueOrder && (
+              <div className="mt-4 bg-white p-4 rounded-xl border border-yellow-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-gray-600 mb-1">🏆 Highest Value Order</div>
+                    <div className="text-lg font-bold text-yellow-900">
+                      {formatCurrency(comprehensiveMetrics.highestValueOrder.amount)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {comprehensiveMetrics.highestValueOrder.type === 'retail' ? '🛍️' : '✂️'}{' '}
+                      {comprehensiveMetrics.highestValueOrder.type === 'retail'
+                        ? 'Retail'
+                        : 'Stitching'}{' '}
+                      - {comprehensiveMetrics.highestValueOrder.id}
+                    </div>
+                  </div>
+                  {comprehensiveMetrics.mostProfitableOrder && (
+                    <div className="text-right">
+                      <div className="text-xs text-gray-600 mb-1">💎 Most Profitable</div>
+                      <div className="text-lg font-bold text-green-900">
+                        {formatCurrency(comprehensiveMetrics.mostProfitableOrder.profit)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {comprehensiveMetrics.mostProfitableOrder.type === 'retail' ? '🛍️' : '✂️'}{' '}
+                        {comprehensiveMetrics.mostProfitableOrder.type === 'retail'
+                          ? 'Retail'
+                          : 'Stitching'}{' '}
+                        - {comprehensiveMetrics.mostProfitableOrder.id}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Retail vs Stitching Comparison */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Retail Section */}
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-2xl border-2 border-blue-200 shadow-lg">
+              <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+                <span>🛍️</span> Retail Business
+              </h3>
+              <div className="space-y-3">
+                <div className="bg-white p-3 rounded-lg border border-blue-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Revenue</span>
+                    <span className="font-bold text-blue-900">
+                      {formatCurrency(comprehensiveMetrics.retail.revenue)}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-green-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Profit</span>
+                    <span className="font-bold text-green-900">
+                      {formatCurrency(comprehensiveMetrics.retail.profit)}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-orange-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Dues</span>
+                    <span className="font-bold text-orange-900">
+                      {formatCurrency(comprehensiveMetrics.retail.dues)}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white p-3 rounded-lg border border-gray-100">
+                    <div className="text-xs text-gray-600 mb-1">Orders</div>
+                    <div className="font-bold text-gray-900">
+                      {comprehensiveMetrics.retail.orders}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      ✅ {comprehensiveMetrics.retail.completedOrders} / ⏳{' '}
+                      {comprehensiveMetrics.retail.pendingOrders}
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-gray-100">
+                    <div className="text-xs text-gray-600 mb-1">Avg Order</div>
+                    <div className="font-bold text-gray-900">
+                      {formatCurrency(comprehensiveMetrics.retail.averageOrderValue)}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="text-xs text-green-700 mb-1">💵 Cash</div>
+                    <div className="font-bold text-green-900">
+                      {formatCurrency(comprehensiveMetrics.retail.cashTotal)}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div className="text-xs text-blue-700 mb-1">📱 UPI</div>
+                    <div className="font-bold text-blue-900">
+                      {formatCurrency(comprehensiveMetrics.retail.upiTotal)}
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-gray-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">📦 Items Sold</span>
+                    <span className="font-bold text-gray-900">
+                      {comprehensiveMetrics.retail.itemsSold}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-teal-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">💎 Inventory Value</span>
+                    <span className="font-bold text-teal-900">
+                      {formatCurrency(comprehensiveMetrics.retail.inventoryValue)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stitching Section */}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-2xl border-2 border-purple-200 shadow-lg">
+              <h3 className="text-xl font-bold text-purple-900 mb-4 flex items-center gap-2">
+                <span>✂️</span> Stitching Business
+              </h3>
+              <div className="space-y-3">
+                <div className="bg-white p-3 rounded-lg border border-purple-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Revenue</span>
+                    <span className="font-bold text-purple-900">
+                      {formatCurrency(comprehensiveMetrics.stitching.revenue)}
+                    </span>
+                  </div>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-green-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Total Profit</span>
+                    <span className="font-bold text-green-900">
+                      {formatCurrency(comprehensiveMetrics.stitching.profit)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Profit Breakdown */}
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-200">
+                  <div className="text-xs font-semibold text-emerald-800 mb-2">
+                    💰 Profit Breakdown
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">🧵 Fabric Profit</span>
+                      <span className="text-sm font-bold text-emerald-900">
+                        {formatCurrency(comprehensiveMetrics.stitching.fabricProfit)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">✂️ Stitching Charge</span>
+                      <span className="text-sm font-bold text-emerald-900">
+                        {formatCurrency(comprehensiveMetrics.stitching.totalStitchingCharge)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">📌 Accessories</span>
+                      <span className="text-sm font-bold text-emerald-900">
+                        {formatCurrency(comprehensiveMetrics.stitching.accessoryRevenue)}
+                      </span>
+                    </div>
+                    {comprehensiveMetrics.stitching.asterProfit > 0 && (
+                      <div className="flex justify-between items-center pt-2 border-t border-emerald-200">
+                        <span className="text-xs text-gray-600">🌟 Aster (Internal)</span>
+                        <span className="text-sm font-bold text-teal-900">
+                          {formatCurrency(comprehensiveMetrics.stitching.asterProfit)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-lg border border-orange-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Dues</span>
+                    <span className="font-bold text-orange-900">
+                      {formatCurrency(comprehensiveMetrics.stitching.dues)}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white p-3 rounded-lg border border-gray-100">
+                    <div className="text-xs text-gray-600 mb-1">Orders</div>
+                    <div className="font-bold text-gray-900">
+                      {comprehensiveMetrics.stitching.orders}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      ✅ {comprehensiveMetrics.stitching.deliveredOrders}
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-gray-100">
+                    <div className="text-xs text-gray-600 mb-1">Status</div>
+                    <div className="text-xs text-gray-700 space-y-0.5">
+                      <div>⏳ {comprehensiveMetrics.stitching.pendingOrders} Pending</div>
+                      <div>🔨 {comprehensiveMetrics.stitching.inProgressOrders} In-Progress</div>
+                      <div>📦 {comprehensiveMetrics.stitching.readyOrders} Ready</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white p-3 rounded-lg border border-gray-100">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Avg Order Value</span>
+                    <span className="font-bold text-gray-900">
+                      {formatCurrency(comprehensiveMetrics.stitching.averageOrderValue)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Inventory Breakdown */}
+                <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-3 rounded-lg border border-teal-200">
+                  <div className="text-xs font-semibold text-teal-800 mb-2">📦 Inventory Value</div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">🧵 Fabrics</span>
+                      <span className="text-sm font-bold text-teal-900">
+                        {formatCurrency(comprehensiveMetrics.stitching.fabricInventoryValue)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">📌 Accessories</span>
+                      <span className="text-sm font-bold text-teal-900">
+                        {formatCurrency(comprehensiveMetrics.stitching.accessoryInventoryValue)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-teal-200">
+                      <span className="text-xs font-semibold text-gray-700">Total</span>
+                      <span className="text-sm font-bold text-teal-900">
+                        {formatCurrency(comprehensiveMetrics.stitching.totalInventoryValue)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="text-xs text-green-700 mb-1">💵 Cash</div>
+                    <div className="font-bold text-green-900">
+                      {formatCurrency(comprehensiveMetrics.stitching.cashTotal)}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div className="text-xs text-blue-700 mb-1">📱 UPI</div>
+                    <div className="font-bold text-blue-900">
+                      {formatCurrency(comprehensiveMetrics.stitching.upiTotal)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cash & Bank Summary Cards */}
+          {comprehensiveMetrics && mode === 'all-time' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Cash in Hand */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border-2 border-green-200 shadow-lg">
+                <h3 className="text-xl font-bold text-green-900 mb-4 flex items-center gap-2">
+                  <span>💵</span> Cash in Hand
+                </h3>
+                <div className="text-4xl font-bold text-green-900 mb-4">
+                  {formatCurrency(
+                    comprehensiveMetrics.retail.cashTotal + comprehensiveMetrics.stitching.cashTotal
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white p-3 rounded-lg border border-green-100">
+                    <div className="text-xs text-gray-600 mb-1">🛍️ Retail Cash</div>
+                    <div className="font-bold text-green-900">
+                      {formatCurrency(comprehensiveMetrics.retail.cashTotal)}
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-green-100">
+                    <div className="text-xs text-gray-600 mb-1">✂️ Stitching Cash</div>
+                    <div className="font-bold text-green-900">
+                      {formatCurrency(comprehensiveMetrics.stitching.cashTotal)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Money in Bank */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-2xl border-2 border-blue-200 shadow-lg">
+                <h3 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+                  <span>🏦</span> Money in Bank (UPI)
+                </h3>
+                <div className="text-4xl font-bold text-blue-900 mb-4">
+                  {formatCurrency(
+                    comprehensiveMetrics.retail.upiTotal + comprehensiveMetrics.stitching.upiTotal
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white p-3 rounded-lg border border-blue-100">
+                    <div className="text-xs text-gray-600 mb-1">🛍️ Retail UPI</div>
+                    <div className="font-bold text-blue-900">
+                      {formatCurrency(comprehensiveMetrics.retail.upiTotal)}
+                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-blue-100">
+                    <div className="text-xs text-gray-600 mb-1">✂️ Stitching UPI</div>
+                    <div className="font-bold text-blue-900">
+                      {formatCurrency(comprehensiveMetrics.stitching.upiTotal)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Financial Metrics Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -271,7 +663,11 @@ const Dashboard = () => {
                 ? 'Monthly Revenue'
                 : 'Lifetime Revenue'
           }
-          value={formatCurrency(metrics.lifetimeRevenue)}
+          value={
+            comprehensiveMetrics
+              ? formatCurrency(comprehensiveMetrics.totalRevenue)
+              : formatCurrency(metrics.lifetimeRevenue)
+          }
           icon="💰"
           gradient="from-green-50 to-green-100"
           border="border-green-200"
@@ -285,7 +681,11 @@ const Dashboard = () => {
                 ? 'Monthly Profit'
                 : 'Lifetime Profit'
           }
-          value={formatCurrency(metrics.lifetimeProfit)}
+          value={
+            comprehensiveMetrics
+              ? formatCurrency(comprehensiveMetrics.totalProfit)
+              : formatCurrency(metrics.lifetimeProfit)
+          }
           icon="📈"
           gradient="from-blue-50 to-blue-100"
           border="border-blue-200"
@@ -293,7 +693,11 @@ const Dashboard = () => {
         />
         <StatCard
           title="Total Dues"
-          value={formatCurrency(metrics.totalDues)}
+          value={
+            comprehensiveMetrics
+              ? formatCurrency(comprehensiveMetrics.totalDues)
+              : formatCurrency(metrics.totalDues)
+          }
           icon="💳"
           gradient="from-orange-50 to-orange-100"
           border="border-orange-200"
@@ -301,7 +705,13 @@ const Dashboard = () => {
         />
         <StatCard
           title="Avg Order Value"
-          value={formatCurrency(metrics.averageOrderValue)}
+          value={
+            comprehensiveMetrics
+              ? formatCurrency(
+                  comprehensiveMetrics.totalRevenue / comprehensiveMetrics.totalOrders || 0
+                )
+              : formatCurrency(metrics.averageOrderValue)
+          }
           icon="📊"
           gradient="from-purple-50 to-purple-100"
           border="border-purple-200"
@@ -319,7 +729,11 @@ const Dashboard = () => {
                 ? 'Orders This Month'
                 : 'Total Orders'
           }
-          value={metrics.totalOrders.toString()}
+          value={
+            comprehensiveMetrics
+              ? comprehensiveMetrics.totalOrders.toString()
+              : metrics.totalOrders.toString()
+          }
           icon="🛒"
           gradient="from-indigo-50 to-indigo-100"
           border="border-indigo-200"
@@ -333,43 +747,76 @@ const Dashboard = () => {
                 ? 'Customers This Month'
                 : 'Total Customers'
           }
-          value={metrics.totalCustomers.toString()}
+          value={
+            comprehensiveMetrics
+              ? comprehensiveMetrics.totalCustomers.toString()
+              : metrics.totalCustomers.toString()
+          }
           icon="👥"
           gradient="from-pink-50 to-pink-100"
           border="border-pink-200"
           textColor="text-pink-900"
         />
-        {mode === 'all-time' && (
-          <StatCard
-            title="Items in Stock"
-            value={metrics.itemsInStock.toString()}
-            icon="📦"
-            gradient="from-teal-50 to-teal-100"
-            border="border-teal-200"
-            textColor="text-teal-900"
-          />
+        {mode === 'all-time' && comprehensiveMetrics && (
+          <>
+            <StatCard
+              title="Total Inventory Value"
+              value={formatCurrency(
+                comprehensiveMetrics.retail.inventoryValue +
+                  comprehensiveMetrics.stitching.totalInventoryValue
+              )}
+              icon="📦"
+              gradient="from-teal-50 to-teal-100"
+              border="border-teal-200"
+              textColor="text-teal-900"
+            />
+            <StatCard
+              title="Total Potential Revenue"
+              value={formatCurrency(comprehensiveMetrics.totalPotentialRevenue)}
+              icon="💸"
+              gradient="from-amber-50 to-amber-100"
+              border="border-amber-200"
+              textColor="text-amber-900"
+            />
+          </>
         )}
-        <StatCard
-          title={
-            mode === 'daily'
-              ? 'Items Sold Today'
-              : mode === 'monthly'
-                ? 'Items Sold This Month'
-                : 'Items Sold'
-          }
-          value={metrics.itemsSold.toString()}
-          icon="✅"
-          gradient="from-emerald-50 to-emerald-100"
-          border="border-emerald-200"
-          textColor="text-emerald-900"
-        />
+        {mode === 'all-time' && !comprehensiveMetrics && (
+          <>
+            <StatCard
+              title="Items in Stock"
+              value={metrics.itemsInStock.toString()}
+              icon="📦"
+              gradient="from-teal-50 to-teal-100"
+              border="border-teal-200"
+              textColor="text-teal-900"
+            />
+            <StatCard
+              title="Potential Revenue"
+              value={formatCurrency(metrics.potentialRevenue)}
+              icon="💸"
+              gradient="from-amber-50 to-amber-100"
+              border="border-amber-200"
+              textColor="text-amber-900"
+            />
+          </>
+        )}
       </div>
 
       {/* Special Metrics Row 3 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl border-2 border-yellow-200 shadow-md">
           <div className="text-sm font-semibold text-yellow-700 mb-2">🏆 Highest Value Order</div>
-          {metrics.highestValueOrder ? (
+          {comprehensiveMetrics?.highestValueOrder ? (
+            <>
+              <div className="text-2xl font-bold text-yellow-900">
+                {formatCurrency(comprehensiveMetrics.highestValueOrder.amount)}
+              </div>
+              <div className="text-xs text-yellow-700 mt-1">
+                {comprehensiveMetrics.highestValueOrder.type === 'retail' ? '🛍️' : '✂️'}{' '}
+                {comprehensiveMetrics.highestValueOrder.id}
+              </div>
+            </>
+          ) : metrics.highestValueOrder ? (
             <>
               <div className="text-2xl font-bold text-yellow-900">
                 {formatCurrency(metrics.highestValueOrder.amount)}
@@ -385,7 +832,17 @@ const Dashboard = () => {
 
         <div className="p-5 bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-xl border-2 border-cyan-200 shadow-md">
           <div className="text-sm font-semibold text-cyan-700 mb-2">💎 Most Profitable Order</div>
-          {metrics.mostProfitableOrder ? (
+          {comprehensiveMetrics?.mostProfitableOrder ? (
+            <>
+              <div className="text-2xl font-bold text-cyan-900">
+                {formatCurrency(comprehensiveMetrics.mostProfitableOrder.profit)}
+              </div>
+              <div className="text-xs text-cyan-700 mt-1">
+                {comprehensiveMetrics.mostProfitableOrder.type === 'retail' ? '🛍️' : '✂️'}{' '}
+                {comprehensiveMetrics.mostProfitableOrder.id}
+              </div>
+            </>
+          ) : metrics.mostProfitableOrder ? (
             <>
               <div className="text-2xl font-bold text-cyan-900">
                 {formatCurrency(metrics.mostProfitableOrder.profit)}
@@ -402,10 +859,20 @@ const Dashboard = () => {
         <div className="p-5 bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl border-2 border-rose-200 shadow-md">
           <div className="text-sm font-semibold text-rose-700 mb-2">⭐ Order Completion Rate</div>
           <div className="text-2xl font-bold text-rose-900">
-            {metrics.orderCompletionRate.toFixed(1)}%
+            {comprehensiveMetrics
+              ? (
+                  ((comprehensiveMetrics.retail.completedOrders +
+                    comprehensiveMetrics.stitching.deliveredOrders) /
+                    comprehensiveMetrics.totalOrders) *
+                  100
+                ).toFixed(1)
+              : metrics.orderCompletionRate.toFixed(1)}
+            %
           </div>
           <div className="text-xs text-rose-700 mt-1">
-            {metrics.completedOrders} / {metrics.totalOrders} orders completed
+            {comprehensiveMetrics
+              ? `${comprehensiveMetrics.retail.completedOrders + comprehensiveMetrics.stitching.deliveredOrders} / ${comprehensiveMetrics.totalOrders} orders completed`
+              : `${metrics.completedOrders} / ${metrics.totalOrders} orders completed`}
           </div>
         </div>
       </div>
@@ -522,13 +989,23 @@ const Dashboard = () => {
               <div className="text-center">
                 <div className="text-xs text-gray-600">Cash</div>
                 <div className="text-lg font-bold text-green-700">
-                  {formatCurrency(metrics.cashTotal)}
+                  {comprehensiveMetrics
+                    ? formatCurrency(
+                        comprehensiveMetrics.retail.cashTotal +
+                          comprehensiveMetrics.stitching.cashTotal
+                      )
+                    : formatCurrency(metrics.cashTotal)}
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-xs text-gray-600">UPI</div>
                 <div className="text-lg font-bold text-blue-700">
-                  {formatCurrency(metrics.upiTotal)}
+                  {comprehensiveMetrics
+                    ? formatCurrency(
+                        comprehensiveMetrics.retail.upiTotal +
+                          comprehensiveMetrics.stitching.upiTotal
+                      )
+                    : formatCurrency(metrics.upiTotal)}
                 </div>
               </div>
             </div>
