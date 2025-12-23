@@ -29,11 +29,13 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
   const [showAdjustForm, setShowAdjustForm] = useState(false);
   const [adjustLoading, setAdjustLoading] = useState(false);
   const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
-  
+
   // Adjustment form state
   const [adjustmentType, setAdjustmentType] = useState<'add' | 'reduce'>('reduce');
   const [adjustmentQuantity, setAdjustmentQuantity] = useState(0);
-  const [adjustmentReason, setAdjustmentReason] = useState<'sold' | 'damaged' | 'lost' | 'return' | 'correction' | 'other'>('sold');
+  const [adjustmentReason, setAdjustmentReason] = useState<
+    'sold' | 'damaged' | 'lost' | 'return' | 'correction' | 'other'
+  >('sold');
   const [adjustmentAmount, setAdjustmentAmount] = useState(0);
   const [adjustmentNotes, setAdjustmentNotes] = useState('');
   const [adjustmentDate, setAdjustmentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -99,7 +101,7 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
     // Calculate current used meters from orders
     const currentUsed = usageHistory.reduce((sum, usage) => sum + usage.metersUsed, 0);
     const currentAvailable = currentFabric.totalMeters - currentUsed;
-    
+
     if (adjustmentType === 'reduce' && adjustmentQuantity > currentAvailable) {
       toast.error('Cannot reduce more than available stock');
       return;
@@ -117,7 +119,7 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
       };
 
       const updatedHistory = [...adjustmentHistory, newAdjustment];
-      
+
       // Only 'add' type increases totalMeters (new purchases)
       // 'reduce' type is just tracked in adjustments and counted as 'used'
       let newTotalMeters = currentFabric.totalMeters;
@@ -161,7 +163,7 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
     setAdjustLoading(true);
     try {
       const adjustmentToDelete = adjustmentHistory[indexToDelete];
-      
+
       // Rollback the quantity change
       let newTotalMeters = currentFabric.totalMeters;
       if (adjustmentToDelete.type === 'add') {
@@ -200,12 +202,12 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
 
   // Calculate total used from actual usage history
   const totalUsedFromOrders = usageHistory.reduce((sum, usage) => sum + usage.metersUsed, 0);
-  
+
   // Calculate total reduced from adjustments (sold, damaged, lost, etc.)
   const totalReducedFromAdjustments = adjustmentHistory
-    .filter(adj => adj.type === 'reduce')
+    .filter((adj) => adj.type === 'reduce')
     .reduce((sum, adj) => sum + adj.quantity, 0);
-  
+
   const totalUsed = totalUsedFromOrders + totalReducedFromAdjustments;
   const availableMeters = currentFabric.totalMeters - totalUsed;
   const usagePercentage =
@@ -313,11 +315,10 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
               </div>
               <div>
                 <p className="text-xs text-boutique-dark/60">Used</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {totalUsed.toFixed(2)}m
-                </p>
+                <p className="text-2xl font-bold text-red-600">{totalUsed.toFixed(2)}m</p>
                 <p className="text-[10px] text-boutique-dark/50">
-                  Orders: {totalUsedFromOrders.toFixed(2)}m | Direct: {totalReducedFromAdjustments.toFixed(2)}m
+                  Orders: {totalUsedFromOrders.toFixed(2)}m | Direct:{' '}
+                  {totalReducedFromAdjustments.toFixed(2)}m
                 </p>
               </div>
               <div>
@@ -487,7 +488,10 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
                   </thead>
                   <tbody>
                     {adjustmentHistory.map((adj, index) => (
-                      <tr key={index} className="border-b border-boutique-accent/20 hover:bg-amber-50/50">
+                      <tr
+                        key={index}
+                        className="border-b border-boutique-accent/20 hover:bg-amber-50/50"
+                      >
                         <td className="font-medium">{index + 1}</td>
                         <td className="text-sm">{formatDate(adj.date)}</td>
                         <td>
@@ -501,8 +505,11 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
                             {adj.type === 'add' ? '+' : '-'} {adj.type}
                           </span>
                         </td>
-                        <td className={`text-right font-bold ${adj.type === 'add' ? 'text-green-600' : 'text-red-600'}`}>
-                          {adj.type === 'add' ? '+' : '-'}{adj.quantity}m
+                        <td
+                          className={`text-right font-bold ${adj.type === 'add' ? 'text-green-600' : 'text-red-600'}`}
+                        >
+                          {adj.type === 'add' ? '+' : '-'}
+                          {adj.quantity}m
                         </td>
                         <td>
                           <span className="badge badge-sm badge-outline uppercase text-xs">
@@ -519,8 +526,19 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
                             onClick={() => setDeleteConfirmIndex(index)}
                             disabled={adjustLoading}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </td>
@@ -553,7 +571,9 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
                 </div>
                 <div>
                   <label className="label">
-                    <span className="label-text font-semibold text-boutique-dark">Quantity (meters)</span>
+                    <span className="label-text font-semibold text-boutique-dark">
+                      Quantity (meters)
+                    </span>
                   </label>
                   <input
                     type="number"
@@ -700,8 +720,19 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-bold text-boutique-primary mb-3 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-red-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
               Delete Adjustment?
             </h3>
@@ -711,24 +742,32 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
               </p>
               <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 space-y-2 text-sm">
                 <p className="font-semibold text-boutique-dark">
-                  <span className={`badge badge-sm ${
-                    adjustmentHistory[deleteConfirmIndex].type === 'add'
-                      ? 'bg-green-100 text-green-700 border-green-300'
-                      : 'bg-red-100 text-red-700 border-red-300'
-                  } mr-2`}>
+                  <span
+                    className={`badge badge-sm ${
+                      adjustmentHistory[deleteConfirmIndex].type === 'add'
+                        ? 'bg-green-100 text-green-700 border-green-300'
+                        : 'bg-red-100 text-red-700 border-red-300'
+                    } mr-2`}
+                  >
                     {adjustmentHistory[deleteConfirmIndex].type}
                   </span>
                   {adjustmentHistory[deleteConfirmIndex].quantity.toFixed(2)} meters
                 </p>
                 <p className="text-boutique-dark/70">
-                  Reason: <span className="font-medium">{adjustmentHistory[deleteConfirmIndex].reason}</span>
+                  Reason:{' '}
+                  <span className="font-medium">
+                    {adjustmentHistory[deleteConfirmIndex].reason}
+                  </span>
                 </p>
                 <p className="text-boutique-dark/70">
-                  Date: <span className="font-medium">{formatDate(adjustmentHistory[deleteConfirmIndex].date)}</span>
+                  Date:{' '}
+                  <span className="font-medium">
+                    {formatDate(adjustmentHistory[deleteConfirmIndex].date)}
+                  </span>
                 </p>
               </div>
               <p className="text-red-600 font-semibold mt-3 text-sm">
-                {adjustmentHistory[deleteConfirmIndex].type === 'add' 
+                {adjustmentHistory[deleteConfirmIndex].type === 'add'
                   ? '✓ Total meters will be reduced'
                   : '✓ This adjustment will be removed from usage history'}
               </p>
@@ -765,8 +804,19 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-bold text-boutique-primary mb-3 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-red-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
               Delete Adjustment?
             </h3>
@@ -776,24 +826,32 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
               </p>
               <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 space-y-2 text-sm">
                 <p className="font-semibold text-boutique-dark">
-                  <span className={`badge badge-sm ${
-                    adjustmentHistory[deleteConfirmIndex].type === 'add'
-                      ? 'bg-green-100 text-green-700 border-green-300'
-                      : 'bg-red-100 text-red-700 border-red-300'
-                  } mr-2`}>
+                  <span
+                    className={`badge badge-sm ${
+                      adjustmentHistory[deleteConfirmIndex].type === 'add'
+                        ? 'bg-green-100 text-green-700 border-green-300'
+                        : 'bg-red-100 text-red-700 border-red-300'
+                    } mr-2`}
+                  >
                     {adjustmentHistory[deleteConfirmIndex].type}
                   </span>
                   {adjustmentHistory[deleteConfirmIndex].quantity.toFixed(2)} meters
                 </p>
                 <p className="text-boutique-dark/70">
-                  Reason: <span className="font-medium">{adjustmentHistory[deleteConfirmIndex].reason}</span>
+                  Reason:{' '}
+                  <span className="font-medium">
+                    {adjustmentHistory[deleteConfirmIndex].reason}
+                  </span>
                 </p>
                 <p className="text-boutique-dark/70">
-                  Date: <span className="font-medium">{formatDate(adjustmentHistory[deleteConfirmIndex].date)}</span>
+                  Date:{' '}
+                  <span className="font-medium">
+                    {formatDate(adjustmentHistory[deleteConfirmIndex].date)}
+                  </span>
                 </p>
               </div>
               <p className="text-red-600 font-semibold mt-3 text-sm">
-                {adjustmentHistory[deleteConfirmIndex].type === 'add' 
+                {adjustmentHistory[deleteConfirmIndex].type === 'add'
                   ? '✓ Total meters will be reduced'
                   : '✓ This adjustment will be removed from usage history'}
               </p>
