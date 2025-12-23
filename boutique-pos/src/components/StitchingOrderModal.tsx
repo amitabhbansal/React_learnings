@@ -148,11 +148,10 @@ const StitchingOrderModal = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-serif font-bold text-white">
-                {isEditing ? 'Edit Stitching Order' : 'Stitching Order Details'} - Order #
-                {currentOrder.orderNo}
+                {isEditing ? 'Edit Order' : 'Order Details'} - #{currentOrder.orderNo}
               </h3>
               <p className="text-amber-100 text-sm">
-                {isEditing ? 'Update payment, status and remarks' : 'Complete order information'}
+                {isEditing ? 'Update payment and status' : 'Complete order information'}
               </p>
             </div>
             <button
@@ -186,9 +185,7 @@ const StitchingOrderModal = ({
               <p className="text-sm">
                 <span className="font-semibold">{currentOrder.customerName}</span>
               </p>
-              {!privacyMode && (
-                <p className="text-sm text-boutique-dark/60">{currentOrder.customerPhone}</p>
-              )}
+              <p className="text-sm text-boutique-dark/60">{currentOrder.customerPhone}</p>
             </div>
 
             <div className="bg-blue-50 p-4 rounded-lg">
@@ -244,74 +241,172 @@ const StitchingOrderModal = ({
           {/* Items Section */}
           <div>
             <h4 className="font-semibold text-boutique-primary mb-3">
-              Stitching Items ({orderItems.length})
+              Order Items ({orderItems.length})
             </h4>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+            <div className="space-y-3">
               {orderItems.map((item, index) => (
                 <div
                   key={index}
-                  className="p-3 bg-white rounded-lg border border-boutique-accent/30"
+                  className="p-4 bg-gradient-to-br from-purple-50 to-white rounded-lg border-2 border-boutique-accent/30 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="badge badge-sm bg-boutique-secondary/80 text-boutique-dark border-none">
-                        {item.itemType}
-                      </span>
-                      <span className="text-sm font-semibold text-boutique-primary">
-                        {item.description}
-                      </span>
-                      <span className="text-xs text-boutique-dark/60">(Qty: {item.quantity})</span>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="badge badge-md bg-boutique-secondary text-boutique-dark border-none font-semibold">
+                          {item.itemType}
+                        </span>
+                        <span className="text-lg font-bold text-boutique-primary">
+                          {item.description}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="flex items-center gap-1 text-boutique-dark/70">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+                            />
+                          </svg>
+                          Qty:{' '}
+                          <span className="font-semibold text-boutique-dark">{item.quantity}</span>
+                        </span>
+                        {!privacyMode && (
+                          <span className="text-lg font-bold text-green-600">
+                            {formatCurrency(item.stitchingPrice * item.quantity)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {!privacyMode && (
-                      <span className="text-sm font-bold text-green-600">
-                        {formatCurrency(item.stitchingPrice * item.quantity)}
-                      </span>
-                    )}
                   </div>
-                  <div className="text-xs text-boutique-dark/60">
-                    <span className="font-medium">Fabric:</span>{' '}
-                    {item.fabric.fabricDescription || 'Not specified'} (
-                    {item.fabric.source === 'shop' ? 'Shop' : 'Customer'} provided,{' '}
-                    {item.fabric.metersUsed}m)
-                    {item.asterRequired && (
-                      <span className="ml-2">
-                        | <span className="font-medium">Aster:</span> {item.asterType}
-                        {!privacyMode && ` (${formatCurrency(item.asterCharge)})`}
-                      </span>
-                    )}
+
+                  {/* Fabric Details */}
+                  <div className="bg-white p-3 rounded-lg border border-boutique-accent/20 mb-2">
+                    <div className="flex items-start gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                        />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-boutique-dark/60 uppercase tracking-wide mb-1">
+                          Fabric Details
+                        </p>
+                        <p className="text-sm text-boutique-dark">
+                          <span className="font-semibold">
+                            {item.fabric.fabricDescription || 'Not specified'}
+                          </span>
+                        </p>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-boutique-dark/70">
+                          <span
+                            className={`badge badge-xs ${item.fabric.source === 'shop' ? 'badge-primary' : 'badge-ghost'}`}
+                          >
+                            {item.fabric.source === 'shop' ? 'Shop Provided' : 'Customer Provided'}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-3 w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+                              />
+                            </svg>
+                            {item.fabric.metersUsed}m used
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Aster Details */}
+                  {item.asterRequired && (
+                    <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                      <div className="flex items-start gap-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                          />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                            Aster Required
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-boutique-dark capitalize">
+                              {item.asterType}
+                            </span>
+                            {!privacyMode && (
+                              <span className="text-sm font-bold text-amber-700">
+                                {formatCurrency(item.asterCharge)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
 
           {/* Financial Summary */}
-          {!privacyMode && (
-            <div className="bg-amber-50 p-4 rounded-lg">
-              <h4 className="font-semibold text-boutique-primary mb-3">Financial Summary</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-boutique-dark/60">Total Amount</p>
-                  <p className="font-bold text-boutique-primary text-lg">
-                    {formatCurrency(currentOrder.totalAmount)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-boutique-dark/60">Amount Paid</p>
-                  <p className="font-bold text-green-600 text-lg">
-                    {formatCurrency(currentOrder.amountPaid)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-boutique-dark/60">Amount Due</p>
-                  <p className="font-bold text-red-600 text-lg">{formatCurrency(balanceDue)}</p>
-                </div>
+          <div className="bg-amber-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-boutique-primary mb-3">Financial Summary</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="text-boutique-dark/60">Total Amount</p>
+                <p className="font-bold text-boutique-primary text-lg">
+                  {formatCurrency(currentOrder.totalAmount)}
+                </p>
+              </div>
+              <div>
+                <p className="text-boutique-dark/60">Amount Paid</p>
+                <p className="font-bold text-green-600 text-lg">
+                  {formatCurrency(currentOrder.amountPaid)}
+                </p>
+              </div>
+              <div>
+                <p className="text-boutique-dark/60">Amount Due</p>
+                <p className="font-bold text-red-600 text-lg">{formatCurrency(balanceDue)}</p>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Payment History */}
-          {!privacyMode && paymentHistory.length > 0 && (
+          {paymentHistory.length > 0 && (
             <div>
               <h4 className="font-semibold text-boutique-primary mb-3">Payment History</h4>
               <div className="overflow-x-auto">
@@ -348,7 +443,7 @@ const StitchingOrderModal = ({
           )}
 
           {/* Add Payment Section (Edit Mode Only) */}
-          {isEditing && !privacyMode && balanceDue > 0 && (
+          {isEditing && balanceDue > 0 && (
             <div className="border-t-2 border-boutique-accent/30 pt-4">
               <h5 className="font-semibold text-boutique-dark mb-3">Record New Payment</h5>
               <div className="grid grid-cols-3 gap-4 mb-4">
@@ -494,7 +589,7 @@ const StitchingOrderModal = ({
               </>
             ) : (
               <>
-                {mode === 'view' && !privacyMode && balanceDue > 0 && (
+                {mode === 'view' && balanceDue > 0 && (
                   <button
                     className="btn bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-none gap-2"
                     onClick={() => setIsEditing(true)}

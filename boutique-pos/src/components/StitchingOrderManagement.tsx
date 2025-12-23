@@ -1545,7 +1545,7 @@ const StitchingOrderManagement = () => {
 
           {/* Orders Table */}
           {!showCreateForm && (
-            <div className="bg-white/90 rounded-xl border-2 border-boutique-accent/30 shadow-md overflow-hidden">
+            <div className="bg-white/90 rounded-xl border-boutique-accent/30 shadow-md overflow-hidden">
               {loading ? (
                 <div className="p-8 text-center">
                   <span className="loading loading-spinner loading-lg text-boutique-primary"></span>
