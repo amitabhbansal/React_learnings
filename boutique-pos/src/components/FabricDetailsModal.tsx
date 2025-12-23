@@ -19,6 +19,7 @@ interface FabricUsage {
   orderDate: string;
   metersUsed: number;
   itemDescription: string;
+  usageType?: 'fabric' | 'aster'; // Track if used as main fabric or aster
 }
 
 const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalProps) => {
@@ -65,6 +66,7 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
         try {
           const items = JSON.parse(order.items);
           items.forEach((item: any) => {
+            // Check if used as main fabric
             if (item.fabric?.fabricId === fabric.fabricId) {
               usages.push({
                 orderNo: order.orderNo,
@@ -72,6 +74,19 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
                 orderDate: order.orderDate,
                 metersUsed: item.fabric.metersUsed || 0,
                 itemDescription: item.description || item.itemType,
+                usageType: 'fabric',
+              });
+            }
+
+            // Check if used as aster
+            if (item.aster?.fabricId === fabric.fabricId) {
+              usages.push({
+                orderNo: order.orderNo,
+                customerName: order.customerName,
+                orderDate: order.orderDate,
+                metersUsed: item.aster.metersUsed || 0,
+                itemDescription: `${item.description || item.itemType} (Aster)`,
+                usageType: 'aster',
               });
             }
           });
