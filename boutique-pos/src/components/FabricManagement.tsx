@@ -2,6 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Fabric } from '../types';
+import FabricDetailsModal from './FabricDetailsModal';
 
 const FabricManagement = () => {
   const [loading, setLoading] = useState(false);
@@ -11,6 +12,7 @@ const FabricManagement = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [selectedFabric, setSelectedFabric] = useState<Fabric | null>(null);
 
   // Form state for creating fabric
   const [newFabric, setNewFabric] = useState({
@@ -160,6 +162,12 @@ const FabricManagement = () => {
 
   return (
     <>
+      {selectedFabric && (
+        <FabricDetailsModal
+          fabric={selectedFabric}
+          onClose={() => setSelectedFabric(null)}
+        />
+      )}
       <div className="bg-gradient-to-br from-purple-50 via-white to-amber-50 rounded-3xl shadow-2xl border-2 border-boutique-secondary/30 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-900 via-purple-950 to-purple-900 p-6 border-b-2 border-boutique-secondary shadow-lg">
@@ -588,7 +596,14 @@ const FabricManagement = () => {
                         className="hover:bg-purple-50 transition-colors border-b border-boutique-accent/10"
                       >
                         <td className="font-medium text-boutique-dark">{index + 1}</td>
-                        <td className="font-semibold text-boutique-primary">{fabric.fabricId}</td>
+                        <td>
+                          <button
+                            className="font-semibold text-boutique-primary hover:text-boutique-secondary underline cursor-pointer transition-all"
+                            onClick={() => setSelectedFabric(fabric)}
+                          >
+                            {fabric.fabricId}
+                          </button>
+                        </td>
                         <td className="text-boutique-dark">{fabric.name || '-'}</td>
                         <td className="text-boutique-dark">{fabric.color || '-'}</td>
                         <td className="text-right font-semibold text-blue-600">

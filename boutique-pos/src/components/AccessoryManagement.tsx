@@ -2,6 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Accessory } from '../types';
+import AccessoryDetailsModal from './AccessoryDetailsModal';
 
 const AccessoryManagement = () => {
   const [loading, setLoading] = useState(false);
@@ -11,6 +12,7 @@ const AccessoryManagement = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [selectedAccessory, setSelectedAccessory] = useState<Accessory | null>(null);
 
   // Form state for creating accessory
   const [newAccessory, setNewAccessory] = useState({
@@ -164,6 +166,12 @@ const AccessoryManagement = () => {
 
   return (
     <>
+      {selectedAccessory && (
+        <AccessoryDetailsModal
+          accessory={selectedAccessory}
+          onClose={() => setSelectedAccessory(null)}
+        />
+      )}
       <div className="bg-gradient-to-br from-purple-50 via-white to-amber-50 rounded-3xl shadow-2xl border-2 border-boutique-secondary/30 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-900 via-purple-950 to-purple-900 p-6 border-b-2 border-boutique-secondary shadow-lg">
@@ -605,8 +613,13 @@ const AccessoryManagement = () => {
                         className="hover:bg-purple-50 transition-colors border-b border-boutique-accent/10"
                       >
                         <td className="font-medium text-boutique-dark">{index + 1}</td>
-                        <td className="font-semibold text-boutique-primary">
-                          {accessory.accessoryId}
+                        <td>
+                          <button
+                            className="font-semibold text-boutique-primary hover:text-boutique-secondary underline cursor-pointer transition-all"
+                            onClick={() => setSelectedAccessory(accessory)}
+                          >
+                            {accessory.accessoryId}
+                          </button>
                         </td>
                         <td>
                           <span className="badge badge-sm bg-blue-100 text-blue-700 border-blue-300">
