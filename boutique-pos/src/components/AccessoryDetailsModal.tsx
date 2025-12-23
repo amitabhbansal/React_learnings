@@ -6,6 +6,7 @@ import { formatCurrency } from '../utils/currency';
 import { formatDate } from '../utils/date';
 import { useApp } from '../context/AppContext';
 import toast from 'react-hot-toast';
+import StitchingOrderModal from './StitchingOrderModal';
 
 interface AccessoryDetailsModalProps {
   accessory: Accessory;
@@ -15,6 +16,7 @@ interface AccessoryDetailsModalProps {
 
 interface AccessoryUsage {
   orderNo: string;
+  orderId: string;
   customerName: string;
   orderDate: string;
   quantityUsed: number;
@@ -30,6 +32,8 @@ const AccessoryDetailsModal = ({ accessory, onClose, onUpdate }: AccessoryDetail
   const [showAdjustForm, setShowAdjustForm] = useState(false);
   const [adjustLoading, setAdjustLoading] = useState(false);
   const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<StitchingOrder | null>(null);
+  const [allOrders, setAllOrders] = useState<StitchingOrder[]>([]);
 
   // Adjustment form state
   const [adjustmentType, setAdjustmentType] = useState<'add' | 'reduce'>('reduce');
@@ -58,6 +62,7 @@ const AccessoryDetailsModal = ({ accessory, onClose, onUpdate }: AccessoryDetail
     try {
       // Fetch all stitching orders
       const orders = await service.getStitchingOrders();
+      setAllOrders(orders);
 
       const usages: AccessoryUsage[] = [];
 
@@ -71,6 +76,7 @@ const AccessoryDetailsModal = ({ accessory, onClose, onUpdate }: AccessoryDetail
                 if (acc.accessoryId === accessory.accessoryId) {
                   usages.push({
                     orderNo: order.orderNo,
+                    orderId: order.$id!,
                     customerName: order.customerName,
                     orderDate: order.orderDate,
                     quantityUsed: acc.quantityUsed || acc.quantity || 0,
@@ -418,7 +424,13 @@ const AccessoryDetailsModal = ({ accessory, onClose, onUpdate }: AccessoryDetail
                       >
                         <td className="font-medium">{index + 1}</td>
                         <td>
-                          <span className="badge badge-sm bg-boutique-secondary/20 text-boutique-dark border-boutique-secondary/40">
+                          <span
+                            onClick={() => {
+                              const order = allOrders.find((o) => o.$id === usage.orderId);
+                              if (order) setSelectedOrder(order);
+                            }}
+                            className="badge badge-sm bg-boutique-secondary/20 text-boutique-dark border-boutique-secondary/40 cursor-pointer hover:bg-boutique-secondary/40 transition-colors"
+                          >
                             {usage.orderNo}
                           </span>
                         </td>
@@ -824,6 +836,11 @@ const AccessoryDetailsModal = ({ accessory, onClose, onUpdate }: AccessoryDetail
             </div>
           </div>
         </div>
+      )}
+
+      {/* Stitching Order Modal */}
+      {selectedOrder && (
+        <StitchingOrderModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
       )}
     </div>
   );

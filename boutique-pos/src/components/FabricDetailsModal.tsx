@@ -6,6 +6,7 @@ import { formatCurrency } from '../utils/currency';
 import { formatDate } from '../utils/date';
 import { useApp } from '../context/AppContext';
 import toast from 'react-hot-toast';
+import StitchingOrderModal from './StitchingOrderModal';
 
 interface FabricDetailsModalProps {
   fabric: Fabric;
@@ -15,6 +16,7 @@ interface FabricDetailsModalProps {
 
 interface FabricUsage {
   orderNo: string;
+  orderId: string;
   customerName: string;
   orderDate: string;
   metersUsed: number;
@@ -30,6 +32,8 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
   const [showAdjustForm, setShowAdjustForm] = useState(false);
   const [adjustLoading, setAdjustLoading] = useState(false);
   const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<StitchingOrder | null>(null);
+  const [allOrders, setAllOrders] = useState<StitchingOrder[]>([]);
 
   // Adjustment form state
   const [adjustmentType, setAdjustmentType] = useState<'add' | 'reduce'>('reduce');
@@ -58,6 +62,7 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
     try {
       // Fetch all stitching orders
       const orders = await service.getStitchingOrders();
+      setAllOrders(orders);
 
       const usages: FabricUsage[] = [];
 
@@ -70,6 +75,7 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
             if (item.fabric?.fabricId === fabric.fabricId) {
               usages.push({
                 orderNo: order.orderNo,
+                orderId: order.$id!,
                 customerName: order.customerName,
                 orderDate: order.orderDate,
                 metersUsed: item.fabric.metersUsed || 0,
@@ -82,6 +88,7 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
             if (item.aster?.fabricId === fabric.fabricId) {
               usages.push({
                 orderNo: order.orderNo,
+                orderId: order.$id!,
                 customerName: order.customerName,
                 orderDate: order.orderDate,
                 metersUsed: item.aster.metersUsed || 0,
@@ -416,7 +423,13 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
                       >
                         <td className="font-medium">{index + 1}</td>
                         <td>
-                          <span className="badge badge-sm bg-boutique-secondary/20 text-boutique-dark border-boutique-secondary/40">
+                          <span
+                            onClick={() => {
+                              const order = allOrders.find((o) => o.$id === usage.orderId);
+                              if (order) setSelectedOrder(order);
+                            }}
+                            className="badge badge-sm bg-boutique-secondary/20 text-boutique-dark border-boutique-secondary/40 cursor-pointer hover:bg-boutique-secondary/40 transition-colors"
+                          >
                             {usage.orderNo}
                           </span>
                         </td>
@@ -896,6 +909,11 @@ const FabricDetailsModal = ({ fabric, onClose, onUpdate }: FabricDetailsModalPro
             </div>
           </div>
         </div>
+      )}
+
+      {/* Stitching Order Modal */}
+      {selectedOrder && (
+        <StitchingOrderModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
       )}
     </div>
   );

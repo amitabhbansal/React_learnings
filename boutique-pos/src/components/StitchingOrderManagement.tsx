@@ -12,6 +12,7 @@ import { useApp } from '../context/AppContext';
 import StitchingOrderModal from './StitchingOrderModal';
 import { formatCurrency } from '../utils/currency';
 import { StitchingFilters, StitchingOrdersTable } from '../features/stitching/components';
+import { generateStitchingOrderNumber } from '../utils/orderNumber';
 
 const StitchingOrderManagement = () => {
   const { privacyMode } = useApp();
@@ -87,6 +88,13 @@ const StitchingOrderManagement = () => {
     loadInventory();
   }, []);
 
+  // Generate order number when create form is opened
+  useEffect(() => {
+    if (showCreateForm && !formData.orderNo) {
+      generateOrderNumber();
+    }
+  }, [showCreateForm]);
+
   // Calculate item total
   const calculateItemTotal = (item: StitchingOrderItem): number => {
     let total = item.stitchingPrice * item.quantity;
@@ -124,6 +132,17 @@ const StitchingOrderManagement = () => {
       toast.error('Failed to fetch stitching orders');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateOrderNumber = async () => {
+    try {
+      const allOrders = await service.getStitchingOrders();
+      const orderNo = await generateStitchingOrderNumber(allOrders);
+      setFormData((prev) => ({ ...prev, orderNo }));
+    } catch (error) {
+      console.error('Error generating order number:', error);
+      toast.error('Failed to generate order number');
     }
   };
 
@@ -194,8 +213,9 @@ const StitchingOrderManagement = () => {
     setCustomerMeasurements(null);
     setNewMeasurements({});
     setShowMeasurementForm(false);
+    const currentOrderNo = formData.orderNo;
     setFormData({
-      orderNo: '',
+      orderNo: currentOrderNo, // Keep the generated order number
       customerName: '',
       customerPhone: '',
       orderDate: new Date().toISOString().split('T')[0],
@@ -437,7 +457,7 @@ const StitchingOrderManagement = () => {
     }
 
     if (!formData.orderNo.trim()) {
-      toast.error('Please enter order number');
+      toast.error('Order number generation failed. Please try again.');
       return;
     }
 

@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import service from '../appwrite/config';
 import type { Customer, Fabric, Accessory } from '../types';
 import type { Measurement, StitchingOrderFormData, StitchingOrderItem } from '../types/stitching';
+import { generateStitchingOrderNumber } from '../utils/orderNumber';
 
 interface CreateStitchingOrderModalProps {
   onClose: () => void;
@@ -72,7 +73,19 @@ const CreateStitchingOrderModal = ({ onClose, onSuccess }: CreateStitchingOrderM
       }
     };
     loadInventory();
+    generateOrderNumber();
   }, []);
+
+  const generateOrderNumber = async () => {
+    try {
+      const allOrders = await service.getStitchingOrders();
+      const orderNo = await generateStitchingOrderNumber(allOrders);
+      setFormData((prev) => ({ ...prev, orderNo }));
+    } catch (error) {
+      console.error('Error generating order number:', error);
+      toast.error('Failed to generate order number');
+    }
+  };
 
   // Calculate total for a single item
   const calculateItemTotal = (item: StitchingOrderItem): number => {
@@ -141,7 +154,7 @@ const CreateStitchingOrderModal = ({ onClose, onSuccess }: CreateStitchingOrderM
     }
 
     if (!formData.orderNo.trim()) {
-      toast.error('Please enter order number');
+      toast.error('Order number generation failed. Please try again.');
       return;
     }
 
@@ -527,15 +540,15 @@ const CreateStitchingOrderModal = ({ onClose, onSuccess }: CreateStitchingOrderM
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-semibold">
-                      Order No. <span className="text-error">*</span>
+                      Order No. <span className="text-green-600">(Auto-generated)</span>
                     </span>
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g., ST-001"
-                    className="input input-bordered"
+                    placeholder="Auto-generating..."
+                    className="input input-bordered bg-gray-50 cursor-not-allowed"
                     value={formData.orderNo}
-                    onChange={(e) => setFormData({ ...formData, orderNo: e.target.value })}
+                    readOnly
                   />
                 </div>
                 <div className="form-control">
