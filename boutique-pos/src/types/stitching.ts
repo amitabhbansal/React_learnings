@@ -38,14 +38,21 @@ export interface AccessoryUsage {
   billedToCustomer: boolean;
 }
 
+export interface AsterDetail {
+  fabricId: string | null;
+  fabricDescription: string;
+  metersUsed: number;
+  ratePerMeter: number;
+  fabricCost: number;
+}
+
 export interface StitchingOrderItem {
   itemType: string; // blouse, kurti, suit, lehenga, saree, etc.
   description: string;
   quantity: number;
   stitchingPrice: number;
   asterRequired: boolean;
-  asterType: string | null; // cotton, tapeta
-  asterCharge: number;
+  aster: AsterDetail | null;
   pieceGiven: boolean;
   fabric: FabricDetail;
   additionalCharges: AdditionalCharge[];
@@ -127,8 +134,7 @@ export const initialStitchingOrderItem: StitchingOrderItem = {
   quantity: 1,
   stitchingPrice: 0,
   asterRequired: false,
-  asterType: null,
-  asterCharge: 0,
+  aster: null,
   pieceGiven: false,
   fabric: {
     source: 'customer',

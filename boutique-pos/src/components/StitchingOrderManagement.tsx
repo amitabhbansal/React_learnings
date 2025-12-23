@@ -50,8 +50,7 @@ const StitchingOrderManagement = () => {
         quantity: 1,
         stitchingPrice: 0,
         asterRequired: false,
-        asterType: null,
-        asterCharge: 0,
+        aster: null,
         pieceGiven: false,
         fabric: {
           source: 'customer',
@@ -67,6 +66,9 @@ const StitchingOrderManagement = () => {
     ],
     paymentHistory: [],
   });
+
+  // Filter fabrics that contain 'aster' in name (case-insensitive)
+  const asterFabrics = fabrics.filter((f) => f.name?.toLowerCase().includes('aster'));
 
   // Load inventory on mount
   useEffect(() => {
@@ -88,9 +90,8 @@ const StitchingOrderManagement = () => {
   // Calculate item total
   const calculateItemTotal = (item: StitchingOrderItem): number => {
     let total = item.stitchingPrice * item.quantity;
-    if (item.asterRequired) {
-      total += item.asterCharge * item.quantity;
-    }
+    // Aster cost is NOT added to customer bill (already included in stitching price)
+    // but we track it internally
     total += item.fabric.fabricCost;
     total += item.additionalCharges.reduce((sum, charge) => sum + charge.amount, 0);
     total += item.accessories.reduce(
@@ -210,8 +211,7 @@ const StitchingOrderManagement = () => {
           quantity: 1,
           stitchingPrice: 0,
           asterRequired: false,
-          asterType: null,
-          asterCharge: 0,
+          aster: null,
           pieceGiven: false,
           fabric: {
             source: 'customer',
@@ -237,8 +237,7 @@ const StitchingOrderManagement = () => {
       quantity: 1,
       stitchingPrice: 0,
       asterRequired: false,
-      asterType: null,
-      asterCharge: 0,
+      aster: null,
       pieceGiven: false,
       fabric: {
         source: 'customer',
@@ -312,6 +311,40 @@ const StitchingOrderManagement = () => {
     updateItem(itemIndex, {
       fabric: {
         ...item.fabric,
+        metersUsed: meters,
+        fabricCost,
+      },
+    });
+  };
+
+  const updateAsterFabric = (itemIndex: number, fabricId: string | null) => {
+    if (!fabricId) {
+      updateItem(itemIndex, { aster: null });
+      return;
+    }
+
+    const fabric = fabrics.find((f) => f.fabricId === fabricId);
+    if (fabric) {
+      updateItem(itemIndex, {
+        aster: {
+          fabricId: fabric.fabricId,
+          fabricDescription: `${fabric.name || ''} ${fabric.color || ''}`.trim(),
+          metersUsed: 0,
+          ratePerMeter: fabric.sellingRate,
+          fabricCost: 0,
+        },
+      });
+    }
+  };
+
+  const updateAsterMeters = (itemIndex: number, meters: number) => {
+    const item = formData.items[itemIndex];
+    if (!item.aster) return;
+
+    const fabricCost = meters * item.aster.ratePerMeter;
+    updateItem(itemIndex, {
+      aster: {
+        ...item.aster,
         metersUsed: meters,
         fabricCost,
       },
@@ -449,6 +482,21 @@ const StitchingOrderManagement = () => {
             }
           } catch (error) {
             console.error('Error updating fabric inventory:', error);
+          }
+        }
+
+        // Update aster fabric inventory
+        if (item.asterRequired && item.aster && item.aster.fabricId && item.aster.metersUsed > 0) {
+          try {
+            const asterFabricInventory = await service.getFabricById(item.aster.fabricId);
+            if (asterFabricInventory && asterFabricInventory.$id) {
+              const newUsedMeters = (asterFabricInventory.usedMeters || 0) + item.aster.metersUsed;
+              await service.updateFabric(asterFabricInventory.$id, {
+                usedMeters: newUsedMeters,
+              });
+            }
+          } catch (error) {
+            console.error('Error updating aster fabric inventory:', error);
           }
         }
       }
@@ -1122,12 +1170,19 @@ const StitchingOrderManagement = () => {
                             type="checkbox"
                             className="checkbox checkbox-primary"
                             checked={item.asterRequired}
-                            onChange={(e) =>
-                              updateItem(itemIndex, { asterRequired: e.target.checked })
-                            }
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              updateItem(itemIndex, {
+                                asterRequired: checked,
+                                aster: checked ? item.aster : null,
+                              });
+                            }}
                           />
                           <span className="label-text font-semibold text-boutique-dark">
-                            Aster Required
+                            Aster Required{' '}
+                            <span className="text-xs text-gray-500">
+                              (cost included in stitching price)
+                            </span>
                           </span>
                         </label>
                         {item.asterRequired && (
@@ -1135,40 +1190,44 @@ const StitchingOrderManagement = () => {
                             <div className="form-control w-full">
                               <label className="label py-1">
                                 <span className="label-text text-sm font-medium text-boutique-dark">
-                                  Type
+                                  Select Aster Fabric
                                 </span>
                               </label>
                               <select
                                 className="select select-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
-                                value={item.asterType || ''}
+                                value={item.aster?.fabricId || ''}
                                 onChange={(e) =>
-                                  updateItem(itemIndex, { asterType: e.target.value || null })
+                                  updateAsterFabric(itemIndex, e.target.value || null)
                                 }
                               >
-                                <option value="">Select Type</option>
-                                <option value="cotton">Cotton</option>
-                                <option value="tapeta">Tapeta</option>
+                                <option value="">Select Aster</option>
+                                {asterFabrics.map((f) => (
+                                  <option key={f.fabricId} value={f.fabricId}>
+                                    {f.fabricId} - {f.name} {f.color} (₹{f.sellingRate}/m)
+                                  </option>
+                                ))}
                               </select>
                             </div>
-                            <div className="form-control w-full">
-                              <label className="label py-1">
-                                <span className="label-text text-sm font-medium text-boutique-dark">
-                                  Charge (₹)
-                                </span>
-                              </label>
-                              <input
-                                type="number"
-                                min="0"
-                                placeholder="Enter charge"
-                                className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
-                                value={item.asterCharge}
-                                onChange={(e) =>
-                                  updateItem(itemIndex, {
-                                    asterCharge: parseFloat(e.target.value) || 0,
-                                  })
-                                }
-                              />
-                            </div>
+                            {item.aster && (
+                              <div className="form-control w-full">
+                                <label className="label py-1">
+                                  <span className="label-text text-sm font-medium text-boutique-dark">
+                                    Meters Used
+                                  </span>
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.1"
+                                  placeholder="0.0"
+                                  className="input input-bordered w-full bg-white text-boutique-dark border-2 border-boutique-accent/40 focus:border-boutique-secondary focus:outline-none transition-all"
+                                  value={item.aster.metersUsed}
+                                  onChange={(e) =>
+                                    updateAsterMeters(itemIndex, parseFloat(e.target.value) || 0)
+                                  }
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

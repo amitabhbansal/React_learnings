@@ -1,4 +1,4 @@
-import type { OrderItem } from '../../types/order';
+import type { OrderItem } from '../../../types/order';
 
 /**
  * Calculate total amount from order items

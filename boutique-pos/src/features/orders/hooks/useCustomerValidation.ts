@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
-import toast from 'react-hot-toast';
 import service from '../../../appwrite/config';
-import { sanitizePhone, isValidPhone } from '../../../utils/validation';
 
 /**
  * Custom hook for validating customer phone numbers

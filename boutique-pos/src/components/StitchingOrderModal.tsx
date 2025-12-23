@@ -342,7 +342,7 @@ const StitchingOrderModal = ({
                   </div>
 
                   {/* Aster Details */}
-                  {item.asterRequired && (
+                  {item.asterRequired && item.aster && (
                     <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
                       <div className="flex items-start gap-2">
                         <svg
@@ -363,15 +363,16 @@ const StitchingOrderModal = ({
                           <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
                             Aster Required
                           </p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-boutique-dark capitalize">
-                              {item.asterType}
+                          <div className="space-y-1">
+                            <span className="text-sm font-semibold text-boutique-dark">
+                              {item.aster.fabricDescription}
                             </span>
-                            {!privacyMode && (
-                              <span className="text-sm font-bold text-amber-700">
-                                {formatCurrency(item.asterCharge)}
+                            <p className="text-xs text-gray-600">
+                              {item.aster.metersUsed} meters used
+                              <span className="text-amber-700 font-medium ml-2">
+                                (included in stitching price)
                               </span>
-                            )}
+                            </p>
                           </div>
                         </div>
                       </div>
