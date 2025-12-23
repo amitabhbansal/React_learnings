@@ -487,7 +487,7 @@ const OrderManagement = () => {
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text font-semibold text-boutique-dark">
-                        Customer Phone <span className="text-error">*</span>
+                        Customer Phone<span className="text-error">*</span>
                       </span>
                     </label>
                     <input
@@ -503,7 +503,7 @@ const OrderManagement = () => {
                   <div className="form-control w-full">
                     <label className="label">
                       <span className="label-text font-semibold text-boutique-dark">
-                        Customer Name <span className="text-error">*</span>
+                        Customer Name<span className="text-error">*</span>
                       </span>
                     </label>
                     <input

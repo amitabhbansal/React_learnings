@@ -620,13 +620,13 @@ const StitchingOrderManagement = () => {
                     <div className="form-control">
                       <label className="label">
                         <span className="label-text font-semibold">
-                          Customer Phone <span className="text-error">*</span>
+                          Customer Phone<span className="text-error">*</span>
                         </span>
                       </label>
                       <input
                         type="tel"
                         placeholder="10-digit phone"
-                        className="input input-bordered input-sm"
+                        className="ml-1 input input-bordered input-sm"
                         value={formData.customerPhone}
                         onChange={(e) => {
                           const phone = e.target.value.replace(/\D/g, '').slice(0, 10);
@@ -641,13 +641,13 @@ const StitchingOrderManagement = () => {
                     <div className="form-control">
                       <label className="label">
                         <span className="label-text font-semibold">
-                          Customer Name <span className="text-error">*</span>
+                          Customer Name<span className="text-error">*</span>
                         </span>
                       </label>
                       <input
                         type="text"
                         placeholder="Enter customer name"
-                        className="input input-bordered input-sm"
+                        className="ml-1 input input-bordered input-sm"
                         value={formData.customerName}
                         onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                       />
@@ -660,14 +660,28 @@ const StitchingOrderManagement = () => {
                         Customer Measurements (inches)
                       </div>
                       <div className="grid grid-cols-3 md:grid-cols-4 gap-2 text-sm">
-                        {Object.entries(customerMeasurements).map(([key, value]) =>
-                          value ? (
+                        {/* Display in specific order matching input form */}
+                        {[
+                          'length',
+                          'waist',
+                          'chest',
+                          'hip',
+                          'upperChest',
+                          'shoulder',
+                          'frontNeck',
+                          'backNeck',
+                          'armhole',
+                          'sleeveLength',
+                          'sleeveCircumference',
+                        ].map((key) => {
+                          const value = customerMeasurements[key as keyof Measurement];
+                          return value ? (
                             <div key={key}>
                               <span className="text-gray-600">{key}:</span>{' '}
                               <span className="font-semibold">{value}"</span>
                             </div>
-                          ) : null
-                        )}
+                          ) : null;
+                        })}
                       </div>
                     </div>
                   )}
@@ -699,7 +713,7 @@ const StitchingOrderManagement = () => {
                     {showMeasurementForm && (
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {/* Body Measurements */}
+                          {/* Body Measurements - Ordered to match display */}
                           <div className="form-control">
                             <label className="label py-1">
                               <span className="label-text text-xs">Length</span>
@@ -872,11 +886,20 @@ const StitchingOrderManagement = () => {
                             type="button"
                             onClick={() => {
                               setNewMeasurements({});
-                              setShowMeasurementForm(false);
                             }}
                             className="btn btn-xs btn-ghost"
                           >
                             Clear
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setNewMeasurements({});
+                              setShowMeasurementForm(false);
+                            }}
+                            className="btn btn-xs btn-outline"
+                          >
+                            Cancel
                           </button>
                           <button
                             type="button"

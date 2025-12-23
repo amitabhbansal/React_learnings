@@ -413,7 +413,7 @@ const CreateStitchingOrderModal = ({ onClose, onSuccess }: CreateStitchingOrderM
               <div className="form-control">
                 <label className="label">
                   <span className="label-text font-semibold">
-                    Customer Phone <span className="text-error">*</span>
+                    Customer Phone<span className="text-error">*</span>
                   </span>
                 </label>
                 <div className="flex gap-2">
