@@ -9,6 +9,7 @@ import CustomersPage from './pages/CustomersPage';
 import ItemsPage from './pages/ItemsPage';
 import OrdersPage from './pages/OrdersPage';
 import StitchingPage from './pages/StitchingPage';
+import StitchingOverview from './pages/StitchingOverview';
 import FabricInventoryPage from './pages/FabricInventoryPage';
 import AccessoryInventoryPage from './pages/AccessoryInventoryPage';
 
@@ -51,6 +52,7 @@ function App() {
             <Route path="/customers" element={<CustomersPage />} />
             <Route path="/items" element={<ItemsPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/stitching-overview" element={<StitchingOverview />} />
             <Route path="/stitching" element={<StitchingPage />} />
             <Route path="/fabric-inventory" element={<FabricInventoryPage />} />
             <Route path="/accessory-inventory" element={<AccessoryInventoryPage />} />
